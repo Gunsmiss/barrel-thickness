@@ -22,6 +22,23 @@ Build a **precision engineering tool** disguised as a simple web app - where com
 - **Event-driven coupling** - Components communicate via CustomEvents
 - **Testable units** - Each module independently verifiable
 
+### **Calculation Architecture**
+- **Mathematical purity** - Core calculations isolated from UI concerns
+- **SI base unit consistency** - All computations in mm/MPa internally with boundary conversions
+- **Numerical robustness** - 1e-9 convergence tolerance for iterative solvers
+- **Error propagation** - Structured error handling from computation through UI display
+- **Performance targets** - Sub-millisecond analysis for real-time responsiveness
+- **Validation integration** - Calculation results feed back into form validation system
+- **Asynchronous processing** - Complex multi-scenario analyses run without blocking UI interaction
+- **Graceful degradation** - Fallback mechanisms ensure core functionality when advanced features fail
+
+### **Data Architecture Principles**
+- **Standards compliance** - Engineering data based on published standards (ISO 286, ANSI B4.2)
+- **Interpolation accuracy** - Linear interpolation provides smooth transitions between discrete tolerance values
+- **Caching strategies** - Expensive data loads cached for performance with intelligent fallbacks
+- **JSON structure design** - Human-readable data formats enabling easy validation and modification
+- **Unit boundary isolation** - Raw data in standard units with conversion only at presentation layer
+
 ### **Precision-First Design**
 - **SI canonical storage** - All internal calculations in metric base units
 - **Boundary conversions** - Unit conversion only at UI interfaces
@@ -34,14 +51,26 @@ Build a **precision engineering tool** disguised as a simple web app - where com
 - **Real-time validation** - Immediate feedback without form submission
 - **Progressive disclosure** - Advanced features hidden until needed
 
+### **Results Presentation Standards**
+- **Safety-first indicators** - Color-coded status with clear pass/fail thresholds
+- **Contextual data density** - Summary cards for quick assessment, detailed tables for analysis
+- **Multi-scenario comparisons** - Side-by-side nominal, worst-case, and best-case analyses
+- **Traceability requirements** - Input recap and calculation methodology always visible
+- **Error communication** - Technical accuracy with non-jargon explanations
+- **Professional credibility** - Engineering units, significant figures, and conservative estimates
+- **Progressive complexity** - Basic results shown first, advanced tolerance analysis revealed contextually
+- **Manufacturing awareness** - Results clearly communicate real-world manufacturing implications
+
 ## **Validation & User Experience Principles**
 
 ### **Intelligent Validation**
 - **Debounced real-time validation** - 250ms delay prevents excessive validation calls
 - **Cross-field validation** - Logical constraints (OD > ID) enforced automatically
+- **Engineering relationship validation** - Contextual warnings based on wall thickness ratios and pressure levels
 - **Non-jargon error messages** - Clear, actionable feedback for engineers
 - **Field-specific validation** - Context-aware validation rules per input type
 - **Required field indicators** - Visual cues with accessibility support
+- **Tolerance-aware warnings** - Smart alerts for manufacturing feasibility and safety implications
 
 ### **Progressive Disclosure Implementation**
 - **Bootstrap accordion structure** - Collapsible advanced options (trunnion, tolerances)
@@ -59,10 +88,28 @@ Build a **precision engineering tool** disguised as a simple web app - where com
 ## **Implementation Strategy**
 Focus on **engineering correctness over feature completeness** - each module must be mathematically sound and thoroughly tested before moving to the next layer of functionality.
 
-### **Validation Strategy Proven**
-Through Task 4 implementation, we've validated that:
+### **Implementation Strategy Proven**
+Through Tasks 4-6 implementation, we've validated that:
+
+**Form & Validation (Task 4):**
 - **Form validation complexity** can be managed through modular functions
 - **Unit conversion reliability** is maintained through consistent SI canonical storage
 - **Progressive disclosure** enhances UX without sacrificing professional capability
 - **Accessibility standards** are achievable with proper ARIA implementation
 - **Mobile responsiveness** requires careful state synchronization but is fully achievable
+
+**Calculation Engine (Task 5):**
+- **Mathematical isolation** enables independent testing and validation of core algorithms
+- **Numerical convergence** patterns (bisection method) provide robust solutions within performance constraints
+- **Error boundary design** allows graceful degradation from calculation errors to user-friendly messages
+- **Unit conversion architecture** seamlessly bridges display units and SI computational units
+- **Results integration** with existing form validation creates cohesive user experience flow
+- **Performance optimization** achieves sub-millisecond calculations suitable for real-time interaction
+
+**Tolerance & Manufacturing Analysis (Task 6):**
+- **Standards-based tolerance systems** (ISO 286, ANSI B4.2) can be efficiently implemented with lookup tables and interpolation
+- **Asynchronous calculation patterns** enable complex multi-scenario analysis without blocking the UI
+- **Fallback data strategies** ensure robustness when external data sources fail
+- **Contextual validation systems** provide intelligent warnings based on engineering relationships
+- **Professional results presentation** scales effectively from simple nominal cases to complex worst-case scenarios
+- **Test-driven tolerance validation** ensures numerical accuracy across edge cases and real-world manufacturing scenarios
