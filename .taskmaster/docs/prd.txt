@@ -1,0 +1,284 @@
+Gunsmith Barrel Safety Factor Calculator - Product Requirements Document
+
+1. EXECUTIVE SUMMARY
+
+This project aims to create a single-page web application for calculating safety factors for gun barrels and optional trunnions using thick-walled pressure vessel equations. The application will be hosted on GitHub Pages as a static site with all calculations performed client-side, requiring no backend infrastructure.
+
+2. PROJECT OBJECTIVES
+
+Primary Goals:
+- Develop a professional-grade safety factor calculator for gun barrel design
+- Provide accurate calculations using industry-standard thick-walled cylinder equations
+- Support both metric (SI) and imperial unit systems with seamless conversion
+- Create an intuitive, responsive interface suitable for engineers and gunsmiths
+- Ensure offline capability with no external dependencies during runtime
+
+Secondary Goals:
+- Include comprehensive material and cartridge databases
+- Provide visual analysis through interactive charts
+- Enable configuration saving and report generation
+- Support advanced features like trunnion analysis and tolerance calculations
+
+3. TARGET USERS
+
+Primary Users:
+- Professional gunsmiths designing custom barrels
+- Mechanical engineers working in firearms manufacturing
+- Firearms hobbyists and enthusiasts with technical knowledge
+- Quality control engineers verifying barrel specifications
+
+User Characteristics:
+- Technical understanding of pressure vessel theory
+- Familiarity with firearms terminology and standards
+- Need for quick, accurate safety calculations
+- Require detailed analysis for documentation purposes
+
+4. CORE FEATURES
+
+4.1 Calculation Engine
+- Implement Lamé equations for thick-walled cylinder analysis
+- Calculate hoop stress, radial stress, and Von Mises stress
+- Perform worst-case analysis considering manufacturing tolerances
+- Support compound cylinder analysis for trunnion configurations
+- Calculate safety factors against yield and ultimate strength
+- Determine burst pressure estimates
+
+4.2 User Interface
+- Three-panel responsive layout (Input, Results, Charts)
+- Real-time unit system conversion (Metric/Imperial)
+- Input validation with informative error messages
+- Color-coded safety factor indicators
+- Mobile-responsive design with appropriate breakpoints
+
+4.3 Data Management
+- Pre-loaded database of standard cartridges with specifications
+- Comprehensive material library with mechanical properties
+- Standard fit tolerances (ISO 286, ANSI B4.2)
+- Local storage for saved configurations
+- Import/export capabilities for sharing calculations
+
+4.4 Visualization
+- Interactive charts using Chart.js library
+- Multiple analysis views (SF vs OD, Pressure, Material, etc.)
+- Stress distribution visualization
+- Material comparison charts
+- Downloadable chart images
+
+4.5 Advanced Features
+- Trunnion analysis for reinforced barrel designs
+- Tolerance stack-up calculations
+- PDF report generation with complete analysis
+- Calculation methodology documentation
+- Help tooltips and educational content
+
+5. TECHNICAL REQUIREMENTS
+
+5.1 Technology Stack
+- Frontend: HTML5, CSS3, JavaScript (ES6+)
+- Charting: Chart.js v4.4.0 (CDN)
+- Styling: Bootstrap 5.3.0 (CDN)
+- Hosting: GitHub Pages
+- Version Control: Git/GitHub
+
+5.2 Performance Requirements
+- Page load time: < 2 seconds
+- Calculation completion: < 100ms
+- Chart rendering: < 500ms
+- Smooth mobile interactions
+- Offline capability after initial load
+
+5.3 Browser Compatibility
+- Chrome (latest two versions)
+- Firefox (latest two versions)
+- Safari (latest two versions)
+- Edge (latest two versions)
+- Mobile Safari (iOS 14+)
+- Chrome for Android (latest)
+
+5.4 Accessibility Standards
+- WCAG 2.1 Level AA compliance
+- Full keyboard navigation
+- Screen reader compatibility
+- High contrast mode support
+- Clear focus indicators
+
+6. USER EXPERIENCE REQUIREMENTS
+
+6.1 Input Flow
+- Logical grouping of related inputs
+- Progressive disclosure for advanced options
+- Smart defaults for common use cases
+- Immediate validation feedback
+- Contextual help available
+
+6.2 Results Presentation
+- Clear safety factor summary with visual indicators
+- Detailed breakdown available on demand
+- Tabular data for precise values
+- Exportable results for documentation
+- Traceable calculation steps
+
+6.3 Error Handling
+- Graceful degradation for unsupported features
+- Clear, actionable error messages
+- Validation before calculation
+- Recovery suggestions for common errors
+- No technical jargon in user-facing messages
+
+7. DATA SPECIFICATIONS
+
+7.1 Standard Cartridge Database
+Include common cartridges:
+- .223 Remington, .308 Winchester, 9mm Luger
+- .45 ACP, .30-06 Springfield, .300 Win Mag
+- .50 BMG, 5.56 NATO, 7.62 NATO
+- .338 Lapua Magnum
+Each with chamber diameter and maximum pressure specifications
+
+7.2 Material Database
+Include standard materials:
+- Carbon steels (4140, 4150)
+- Stainless steels (416, 17-4 PH, 304, 316)
+- High-performance alloys (Inconel 718)
+- Titanium alloys (Grade 5)
+Each with yield strength, ultimate tensile strength, and elastic modulus
+
+7.3 Tolerance Standards
+Support industry standards:
+- ISO 286 fits (H7/h6, H8/h7, H9/h8)
+- ANSI B4.2 fits (RC4, RC5, LC2)
+- Custom tolerance input capability
+- Automatic scaling with nominal dimensions
+
+8. IMPLEMENTATION PHASES
+
+Phase 1 - Core Functionality (Week 1-2):
+- Basic UI layout and structure
+- Manual input fields with validation
+- Core calculation engine implementation
+- Simple results display
+- Unit system toggle functionality
+
+Phase 2 - Enhanced Features (Week 3-4):
+- Standard cartridge selection
+- Material database integration
+- Tolerance calculations
+- Detailed results table
+- Advanced validation rules
+
+Phase 3 - Advanced Features (Week 5-6):
+- Trunnion analysis capability
+- Interactive charts implementation
+- Local storage functionality
+- Export/report generation
+- Mobile optimization
+
+Phase 4 - Polish & Documentation (Week 7):
+- UI refinements and animations
+- Comprehensive testing
+- Documentation completion
+- Performance optimization
+- Deployment preparation
+
+9. SUCCESS METRICS
+
+Technical Metrics:
+- 100% calculation accuracy vs hand calculations
+- < 2 second page load time
+- Zero runtime dependencies
+- Full offline functionality
+- Cross-browser compatibility
+
+User Metrics:
+- Intuitive interface requiring no manual
+- Complete calculation in < 30 seconds
+- Professional-quality output reports
+- Positive user feedback on usability
+- Active usage by target audience
+
+10. CONSTRAINTS AND CONSIDERATIONS
+
+Technical Constraints:
+- Must work entirely client-side
+- No server or database requirements
+- Limited to static file hosting
+- Browser computation limitations
+- Local storage size restrictions
+
+Design Constraints:
+- Must be mobile-responsive
+- Accessible to users with disabilities
+- Professional appearance required
+- Educational yet liability-conscious
+- Clear safety disclaimers
+
+11. RISK MITIGATION
+
+Calculation Accuracy:
+- Extensive unit testing of formulas
+- Validation against known solutions
+- Peer review of implementation
+- Clear assumptions documented
+- Conservative safety margins
+
+Legal Considerations:
+- Prominent disclaimer about liability
+- Educational purpose emphasis
+- No warranty implied or expressed
+- Recommendation to consult professionals
+- Terms of use clearly stated
+
+12. FUTURE ENHANCEMENTS
+
+Potential Version 2 Features:
+- Additional cylinder geometries
+- Fatigue analysis capabilities
+- Multi-layer barrel analysis
+- API for external integration
+- User accounts and cloud storage
+- Community-shared configurations
+- Advanced material models
+- Thermal analysis integration
+
+13. SPECIAL REQUIREMENTS
+
+Diagram Visualization:
+- Create a cross-sectional diagram showing:
+  - Chamber/bore diameter (inner)
+  - Barrel outside diameter
+  - Trunnion diameter (if applicable)
+  - Pressure distribution visualization
+  - Dimension labels and annotations
+  - Scale representation
+  - Color coding for different components
+
+The diagram should be:
+- SVG-based for scalability
+- Interactive with hover states
+- Synchronized with input values
+- Exportable as image
+- Responsive to screen size
+
+14. DELIVERABLES
+
+Required Deliverables:
+- Complete source code on GitHub
+- Deployed application on GitHub Pages
+- User documentation/help system
+- Technical documentation for developers
+- Test suite with coverage reports
+- Sample calculations for validation
+- Marketing/landing page content
+
+15. MAINTENANCE REQUIREMENTS
+
+Ongoing Maintenance:
+- Regular dependency updates
+- Browser compatibility monitoring
+- Bug fixes as reported
+- Documentation updates
+- Community feature requests
+- Security patch application
+- Performance optimization
+
+This PRD defines a comprehensive barrel safety factor calculator that serves the gunsmithing and firearms engineering community with professional-grade calculations in an accessible, web-based format.

@@ -1,0 +1,294 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Initialize project and GitHub Pages deployment",
+        "description": "Create repository, branch protection, CI to build and deploy a static SPA to GitHub Pages with offline support baseline.",
+        "details": "- Repo: gunsmith-barrel-sf-calculator\n- Branches: main (protected), gh-pages\n- Tools: vanilla HTML5/CSS3/JS ES6 modules, no bundler to keep zero-runtime deps; optional npm for dev linting only\n- Add /.github/workflows/deploy.yml using actions/checkout@v4 and actions/upload-pages-artifact@v3 + actions/deploy-pages@v4\n- pages: build from root (static)\n- Base files: index.html, /assets/, /js/, /css/, /data/\n- Add SECURITY.md, CODE_OF_CONDUCT.md, LICENSE, CONTRIBUTING.md\n- Enable GitHub Pages in repo settings (GitHub Actions)\n- Add basic index.html shell and robots.txt, sitemap.xml\n- Configure CSP in meta http-equiv Content-Security-Policy to allow self plus CDN hosts for Bootstrap 5.3.0 and Chart.js v4.4.0\n- Add .editorconfig, .nvmrc, .prettierrc, .eslintrc (eslint-config-standard with globals for browser)\n- Include favicon and manifest.json placeholder",
+        "testStrategy": "- Verify workflow triggers on push to main and publishes to Pages URL\n- Manual load site over HTTPS, confirm no network errors in console\n- Lighthouse: confirm page is served and passes basic checks\n- Validate CSP blocks unexpected external requests.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "in-progress",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Add Bootstrap 5.3.0 and base responsive layout",
+        "description": "Implement three-panel responsive layout (Inputs, Results, Charts) using Bootstrap 5.3.0 via CDN with mobile-first design.",
+        "details": "- Include Bootstrap 5.3.0 CSS from CDN with SRI\n- Layout: container-fluid, row with cols\n- Desktop: col-xxl-4 Inputs, col-xxl-4 Results, col-xxl-4 Charts\n- Tablets: stack Results and Charts beneath Inputs\n- Mobile: single-column stacked panels with offcanvas for Inputs if width < 576px\n- Use CSS variables for theme, high-contrast mode support via prefers-contrast\n- Add ARIA landmarks: role=main, nav for unit toggle, region labels\n- Add sticky header with app title and unit toggle",
+        "testStrategy": "- Resize tests at breakpoints (xs, sm, md, lg, xl, xxl)\n- Check tab order and focus handling\n- Lighthouse mobile/desktop responsive checks\n- Confirm Bootstrap loaded with integrity and crossorigin attributes.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement unit system and conversion module",
+        "description": "Create robust Metric/Imperial unit handling with real-time conversion for inputs/outputs.",
+        "details": "- Module js/units.js exporting: setSystem('SI'|'IP'), getSystem(), convert(value, from, to), format(value, unit)\n- Units: length (mm,in), pressure (MPa, psi), diameter (mm,in), thickness (mm,in), modulus (GPa, psi), stress (MPa, ksi), density (kg/m3, lb/ft3) if needed\n- Constants: 1 in = 25.4 mm; 1 MPa = 145.0377377 psi; 1 GPa = 145037.7377 psi; ksi = 6.894757 MPa\n- Maintain canonical internal SI; convert at UI boundaries\n- Unit toggle UI in header; persist in localStorage\n- Emit CustomEvent('unitSystemChanged') for UI re-render",
+        "testStrategy": "- Unit tests (jest-lite or custom) for conversion factors with tolerance 1e-9 relative\n- UI toggling updates labels/values without precision drift (store canonical SI)\n- Cross-verify sample values (e.g., 4140 yield 655 MPa ↔ 95.0 ksi)",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Input form with validation and progressive disclosure",
+        "description": "Create logical input groups with immediate validation and advanced options hidden by default.",
+        "details": "- Inputs: chamber/bore diameter, outside diameter, barrel length (for charts/illustration), max chamber pressure, material selection, optional trunnion parameters (OD, length, interference fit), tolerances selection, safety factors target selection\n- Use Bootstrap form-floating controls with helper text and aria-describedby\n- Validation: numeric ranges, required fields, cross-field checks (OD > ID), pressure > 0, material chosen\n- Progressive disclosure: Advanced accordion for tolerances and trunnion\n- Smart defaults: select common cartridge/material; prefill typical OD\n- Error messages non-jargon, actionable\n- Debounced input (250ms) triggers recalculation",
+        "testStrategy": "- Try invalid states: non-numeric, negative, OD<=ID, missing required -> inline errors\n- Keyboard-only navigation; screen reader reads labels and errors\n- Ensure advanced sections toggle ARIA-expanded and are reachable",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Core calculation engine (Lamé equations)",
+        "description": "Implement thick-walled cylinder stresses (radial, hoop) with Lamé equations, Von Mises, safety factors, burst pressure estimate.",
+        "details": "- Module js/calc/core.js\n- Functions:\n  - l ameCoefficients(ri, ro, p_i, p_o=0): returns A,B where σ_r = A - B/r^2, σ_θ = A + B/r^2\n  - stresses(r): returns {sigma_r, sigma_theta}\n  - vonMises(sigma_r, sigma_theta, sigma_axial=0): sqrt(σ_θ^2 + σ_r^2 - σ_θσ_r + 3σ_axial^2)\n  - safetyFactors(sigma_vm, Sy, Su): {SF_y=Sy/σ_vm, SF_u=Su/σ_vm}\n  - burstPressureEstimate via yield at bore: solve for p at which σ_vm(ri)=Sy (use numeric solver brent-bisect)\n- All internal units SI: pressures Pa or MPa consistently; document assumptions (thin axial stress if closed ends optional later)\n- Numerical: implement robust bisection with max iters 100, tol 1e-9\n- Handle edge cases: ri>0, ro>ri, p>=0\n- Export full field sampling for charts",
+        "testStrategy": "- Unit tests vs known textbook examples; compare with independent computation (Python reference precomputed JSON)\n- Verify symmetry: σ_r(ro)=0 at external free surface\n- Check that burst pressure > applied pressure for safe designs\n- Performance: compute < 1 ms typical",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Tolerance and worst-case analysis module",
+        "description": "Add manufacturing tolerance handling and perform worst-case OD/ID/pressure scenarios.",
+        "details": "- Module js/calc/tolerance.js\n- Inputs: nominal ri, ro, selected fit standard or custom +/- tolerances, pressure tolerance factor\n- Implement ISO 286 basic fits (H7/h6, H8/h7, H9/h8) and ANSI B4.2 (RC4, RC5, LC2) as lookup (approx tables in /data/tolerances.json)\n- Compute derived ri_min/max, ro_min/max from tolerances and interference/clearance\n- Worst-case selection: choose ri_max and ro_min for maximum hoop stress; optionally Monte Carlo later (not in v1)\n- Return worst-case dimensions and feed to core engine\n- UI binds to display worst-case tag",
+        "testStrategy": "- Table-driven tests for lookup values mapping\n- Analytical check: decreasing wall thickness increases stress\n- Validate that worst-case SF <= nominal SF",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Compound cylinder/trunnion analysis",
+        "description": "Support reinforced barrel with trunnion using compound cylinder (shrink/interference fit) stress superposition.",
+        "details": "- Module js/calc/trunnion.js\n- Model: two concentric cylinders: inner barrel (ri_b, ro_b), outer trunnion (ri_t=ro_b−δ, ro_t)\n- Compute contact pressure p_c from interference δ using Lame elasticity: p_c = δ / ( (ro_b^2+ri_b^2)/(E_b*(ro_b^2 - ri_b^2)) + (ro_t^2+ri_t^2)/(E_t*(ro_t^2 - ri_t^2)) ) assuming plane strain ν effects included: multiply by (1-ν^2)\n- Superpose: preload stresses due to p_c + operating internal pressure\n- Return resulting σ_θ(r) piecewise in regions and updated SF\n- Inputs use materials E, ν\n- Guard for invalid geometry",
+        "testStrategy": "- Compare to reference problems from pressure vessel texts (unit test with synthetic values)\n- Check limiting case δ→0 reduces to single cylinder\n- Numerical stability for small gaps",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Material database integration",
+        "description": "Create materials library with key properties and selection UI.",
+        "details": "- /data/materials.json including: 4140, 4150, 416, 17-4 PH (H900/H1025), 304, 316, Inconel 718, Ti-6Al-4V (Grade 5)\n- Fields: name, category, condition, Sy (MPa), Su (MPa), E (GPa), nu, notes, source\n- Module js/data/materials.js loads JSON (static fetch) and caches; offline via service worker\n- UI: searchable select with categories, shows properties table; unit labels adapt using units module\n- Allow custom material entry with validation",
+        "testStrategy": "- JSON schema validation at load; fallback with error toast if malformed\n- Spot-check values vs references curated offline\n- Switching materials updates SF instantly",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Cartridge database and pressure specs",
+        "description": "Provide common cartridges with chamber/bore diameters and max pressure for quick selection.",
+        "details": "- /data/cartridges.json including .223 Rem, 5.56 NATO, 9mm Luger, .45 ACP, .308 Win, 7.62 NATO, .30-06, .300 Win Mag, .338 LM, .50 BMG\n- Fields: name, chamber_diameter (mm), bore_diameter optional, max_pressure (MPa/psi), standard (SAAMI/CIP), notes\n- Module js/data/cartridges.js with search/filter and select UI\n- Selecting cartridge autofills bore and pressure; user can override",
+        "testStrategy": "- Validate parsing and unit conversion correctness\n- Cross-check a few entries (e.g., 9mm 241 MPa SAAMI, 5.56 NATO ~430 MPa CIP) within tolerance\n- UI select populates inputs and triggers recompute",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Results computation orchestrator and state management",
+        "description": "Wire inputs, unit conversions, tolerances, and calculation engine to compute and display results in real time.",
+        "details": "- Module js/state.js maintains canonical state in SI\n- Orchestrator js/app.js listens to input changes -> validate -> compute nominal and worst-case -> compute trunnion if enabled -> update results and charts\n- Ensure compute under 100 ms; throttle updates\n- Display SF_y, SF_u, σ_θ at bore/outer, σ_r at bore/outer, Von Mises, burst pressure estimate\n- Color-coded indicators: red <1.0, amber 1.0–1.5, green >1.5\n- Traceable steps panel showing formulas and substituted values",
+        "testStrategy": "- Profiling via performance.now(); assert <100 ms on mid-range device\n- Unit tests for orchestrator pipelines with mocked modules\n- Visual check that indicators change correctly across thresholds",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Results UI: summary, detailed table, and traceability",
+        "description": "Create clear results presentation with summary badges, expandable detailed tables, and calculation steps.",
+        "details": "- Summary cards: SF_y, SF_u, Burst Pressure, Worst-case SF badges\n- Detailed table: stresses at key radii, input recap (including units), assumptions\n- Expandable section: show Lamé equations, substituted numbers, and intermediate constants (A,B)\n- Export button hooks for later PDF/report",
+        "testStrategy": "- Accessibility: role=table, headers associations\n- Verify numbers update and match engine within rounding\n- Unit toggle updates labels without recompute drift",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Interactive charts with Chart.js v4.4.0",
+        "description": "Add stress distribution plots and analysis views with Chart.js via CDN.",
+        "details": "- Include Chart.js v4.4.0 via CDN with SRI\n- Charts:\n  - Stress vs Radius: σ_θ(r), σ_r(r)\n  - Safety Factor vs Outside Diameter sweep at fixed pressure/material\n  - Safety Factor vs Pressure\n  - Material comparison bar chart (SF_y for selected geometry)\n- Implement downsampling for performance\n- Add download image button (toDataURL)\n- Colors colorblind-friendly; legends accessible",
+        "testStrategy": "- Render time under 500 ms; measure with performance marks\n- Tooltips and hover announce values; keyboard focus to datasets\n- Data correctness cross-check by sampling engine at known radii",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "SVG cross-sectional diagram and synchronization",
+        "description": "Build interactive SVG showing geometry, trunnion, and pressure distribution synced to inputs.",
+        "details": "- Create responsive SVG in Results panel\n- Elements: inner bore circle, outer barrel circle, optional trunnion ring, radial gradient to indicate pressure, dimension arrows with labels\n- Interactivity: hover tooltips with dimensions/stresses; keyboard focus using tabindex\n- Scale auto-fit; maintain true proportions ratio\n- Export to PNG/SVG via blob",
+        "testStrategy": "- Verify geometry reflects inputs and updates in real time\n- Check export produces correct resolution and content\n- Accessibility: aria-labels and focus outlines",
+        "priority": "medium",
+        "dependencies": [
+          4,
+          5,
+          7,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Local storage of configurations and import/export",
+        "description": "Allow saving, listing, loading, and sharing calculation configurations offline.",
+        "details": "- Module js/storage.js using localStorage keys: gsbc:v1:configs\n- Data model includes all inputs, unit system, timestamp, name, notes\n- UI: Save, Save As, Load, Delete; Export/Import JSON file\n- Validate schema on import; handle size limits with pruning",
+        "testStrategy": "- Create, list, load workflows; verify state restoration\n- Corrupt import yields friendly error and no crash\n- Storage quota handling with warnings",
+        "priority": "medium",
+        "dependencies": [
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "PDF report generation",
+        "description": "Generate professional PDF reports containing inputs, results, charts, diagram, and methodology.",
+        "details": "- Use client-side jsPDF + html2canvas (embedded via <script> from CDN) staying offline after first load via service worker\n- Template: cover with disclaimer, summary, detailed tables, charts images, SVG diagram, calculation steps\n- Footer with timestamp, version, unit system\n- Option to include worst-case and trunnion sections",
+        "testStrategy": "- Generate sample PDF; verify images render crisp and text selectable where possible\n- File size under reasonable limit (<5 MB typical)\n- Cross-browser PDF rendering parity",
+        "priority": "medium",
+        "dependencies": [
+          11,
+          12,
+          13,
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Accessibility compliance (WCAG 2.1 AA)",
+        "description": "Ensure keyboard navigation, ARIA roles, contrast, and screen reader support meet WCAG 2.1 AA.",
+        "details": "- Implement skip links, focus styles, semantic headings\n- ARIA-live regions for validation messages and result updates\n- Ensure 4.5:1 contrast; high-contrast toggle\n- Labels and descriptions tied to inputs; error ids referenced by aria-describedby\n- Test with NVDA/VoiceOver guidance notes",
+        "testStrategy": "- Use axe-core in browser; fix all serious/critical issues\n- Manual keyboard path through all controls\n- Screen reader readout of calculation summary",
+        "priority": "high",
+        "dependencies": [
+          2,
+          4,
+          11
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 17,
+        "title": "Performance optimization and offline capability",
+        "description": "Meet performance targets and add service worker for offline use after first load.",
+        "details": "- Optimize: minify CSS/JS (build-time via npm scripts), defer non-critical scripts, use requestIdleCallback for heavy chart precomputes\n- Cache strategy: Service worker (Workbox or vanilla) to precache core assets, CDN fallbacks cached on first load, stale-while-revalidate for data JSON\n- Precompute chart datasets lazily\n- Use passive event listeners, debounce inputs\n- Set HTTP caching headers via meta where applicable (GitHub Pages limited)",
+        "testStrategy": "- Lighthouse Performance > 90; First Contentful Paint < 2s on mobile emulation\n- Confirm offline: airplane mode loads app and saved configs; computations work\n- Measure calc under 100 ms and charts under 500 ms",
+        "priority": "high",
+        "dependencies": [
+          1,
+          10,
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Validation suite and numerical verification",
+        "description": "Comprehensive unit tests and sample calculations to ensure 100% accuracy vs hand calcs.",
+        "details": "- Create /tests/ with pure JS assertions; run in browser test runner page\n- Golden cases: textbook cylinder with known stresses; compare to 6+ significant figures\n- Edge cases: very thick wall, near-thin wall, low pressure\n- Cross-compare worst-case logic and trunnion module\n- Document assumptions and references in docs/methodology.md",
+        "testStrategy": "- Automated test page shows pass/fail and coverage estimates\n- Peer-reviewed hand calc PDFs checked in\n- Regression tests run in CI with puppeteer to load test page and assert values",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6,
+          7,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Documentation, help tooltips, and disclaimers",
+        "description": "Create user help system, educational content, and legal disclaimers integrated in-app and in repo.",
+        "details": "- In-app tooltips explaining inputs, units, equations, and safety factor coloring\n- Help modal linking to methodology and examples\n- Prominent disclaimer banner and section in report\n- README with quickstart; docs/ with UX guide and developer tech docs\n- Glossary for firearms and pressure vessel terms",
+        "testStrategy": "- Content review for clarity and non-jargon\n- Check links and anchors\n- Verify tooltips announce via ARIA and do not trap focus",
+        "priority": "medium",
+        "dependencies": [
+          11,
+          18
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Release readiness: cross-browser QA and deployment",
+        "description": "Polish UI, fix defects, finalize versioning, and deploy to GitHub Pages with tag.",
+        "details": "- Cross-browser test matrix: Chrome, Firefox, Safari, Edge (last two versions); Mobile Safari iOS14+, Chrome Android latest\n- Fix CSS/layout quirks; ensure touch hit targets\n- Versioning: tag v1.0.0, changelog\n- Final Lighthouse/axe runs\n- Publish and verify CDN SRI hashes\n- Create landing/marketing page section on index or /landing.html",
+        "testStrategy": "- Manual smoke tests across devices\n- Record metrics: load <2s, calc <100ms, chart <500ms\n- Validate service worker update flow and cache busting via file hashing",
+        "priority": "high",
+        "dependencies": [
+          16,
+          17,
+          19
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-11T10:39:51.758Z",
+      "updated": "2025-08-11T13:24:07.772Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
