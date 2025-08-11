@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gunsmith Barrel Safety Factor Calculator - Professional thick-walled cylinder stress analysis for firearm barrel design">
+    <meta name="keywords" content="gunsmith, barrel, safety factor, stress analysis, thick-walled cylinder, Lamé equations">
+    <meta name="author" content="Gunsmith Barrel SF Calculator">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self';">
+    
+    <!-- Bootstrap 5.3.0 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUa+6hhcNov30FIyDDGA9nh2CZVn4SxiS3p6kIV5kTw5QxzXl3JTc5B7QQ5x" crossorigin="anonymous">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <title>Gunsmith Barrel Safety Factor Calculator</title>
+</head>
+<body>
+    <div class="container-fluid">
+        <header class="row mb-4">
+            <div class="col-12">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#">
+                            <strong>Gunsmith Barrel SF Calculator</strong>
+                        </a>
+                        <span class="navbar-text text-light">
+                            Professional thick-walled cylinder stress analysis
+                        </span>
+                    </div>
+                </nav>
+            </div>
+        </header>
+        
+        <main class="row">
+            <!-- Input Panel -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">📊 Input Parameters</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="input-form">
+                            <!-- Input form will be populated by JavaScript -->
+                            <div class="text-center text-muted">
+                                <div class="spinner-border" role="status" aria-hidden="true"></div>
+                                <p class="mt-2">Loading input form...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">📋 Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="results-display">
+                            <!-- Results will be populated by JavaScript -->
+                            <div class="text-center text-muted">
+                                <p>Enter parameters to see results</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Panel -->
+            <div class="col-lg-4 col-md-12 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">📈 Analysis Charts</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="charts-display">
+                            <!-- Charts will be populated by JavaScript -->
+                            <div class="text-center text-muted">
+                                <p>Charts will appear after calculation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="row mt-4">
+            <div class="col-12">
+                <div class="bg-light p-3 text-center">
+                    <small class="text-muted">
+                        <strong>Disclaimer:</strong> This calculator is for educational and professional reference only. 
+                        Always consult qualified engineers and follow applicable safety standards and regulations.
+                    </small>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Bootstrap 5.3.0 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    
+    <!-- Chart.js v4.4.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js" integrity="sha384-6qiwihr07GSOqLqZiCoB5R/VmpqV5S5ddEvkRSAMORY0nPOAfKSVP58Wr2bN7xoF" crossorigin="anonymous"></script>
+    
+    <!-- Application Scripts -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
+
