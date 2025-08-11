@@ -4,6 +4,7 @@
  */
 
 import { setSystem, getSystem, convert, format, getCurrentUnits, fromSI, toSI } from './units.js';
+import { analyzeCircle, generateStressField } from './calc/core.js';
 
 // Application initialization
 document.addEventListener('DOMContentLoaded', function() {
@@ -755,20 +756,207 @@ function handleFormSubmit(event) {
         return false;
     }
     
-    console.log('Form submitted - calculation will be implemented in future tasks');
+    console.log('Form submitted - performing Lamé equation calculations');
     
-    // Collect form data for validation display
+    // Collect form data for processing
     const formData = collectFormData();
     
-    // Show successful validation with data summary
+    try {
+        // Perform barrel analysis calculation
+        const analysisResult = performBarrelAnalysis(formData);
+        
+        // Display results
+        displayCalculationResults(analysisResult, formData);
+        
+        return true;
+    } catch (error) {
+        console.error('Calculation error:', error);
+        displayCalculationError(error);
+        return false;
+    }
+}
+
+/**
+ * Perform barrel analysis using Lamé equations
+ */
+function performBarrelAnalysis(formData) {
+    // Convert form data to SI units for calculation
+    const ri = toSI(formData.boreDiameter / 2, 'diameter'); // Convert to radius in mm
+    const ro = toSI(formData.outerDiameter / 2, 'diameter'); // Convert to radius in mm
+    const p_i = toSI(formData.pressure, 'pressure'); // Convert to MPa
+    const Sy = toSI(formData.yieldStrength, 'pressure'); // Convert to MPa
+    
+    // Get ultimate strength - either user input or estimate from yield
+    let Su;
+    if (formData.ultimateStrength) {
+        Su = toSI(formData.ultimateStrength, 'pressure');
+    } else {
+        // Conservative estimate: Ultimate ≈ 1.5 × Yield for typical steels
+        Su = Sy * 1.5;
+    }
+    
+    // Set up calculation parameters
+    const calcParams = {
+        ri: ri,
+        ro: ro,
+        p_i: p_i,
+        p_o: 0, // Atmospheric external pressure (assumed)
+        Sy: Sy,
+        Su: Su,
+        sigma_axial: 0 // Assume thin-walled axial stress approximation for now
+    };
+    
+    // Perform the analysis
+    const result = analyzeCircle(calcParams);
+    
+    // Generate stress field for visualization
+    const stressField = generateStressField(
+        ri,
+        ro,
+        result.lameCoefficients.A,
+        result.lameCoefficients.B,
+        50 // 50 points for smooth curves
+    );
+    
+    // Add stress field to result
+    result.stressField = stressField;
+    
+    // Add original form data for reference
+    result.inputData = formData;
+    
+    return result;
+}
+
+/**
+ * Display calculation results in the UI
+ */
+function displayCalculationResults(result, formData) {
     const resultsDisplay = document.getElementById('results-display');
+    const units = formData.units;
+    
+    // Convert results back to display units
+    const displayResult = {
+        safetyFactors: result.safetyFactors,
+        burstPressure: fromSI(result.burstPressure, 'pressure'),
+        stresses: {
+            inner: {
+                sigma_r: fromSI(result.stresses.inner.sigma_r, 'pressure'),
+                sigma_theta: fromSI(result.stresses.inner.sigma_theta, 'pressure'),
+                sigma_vm: fromSI(result.stresses.inner.sigma_vm, 'pressure')
+            },
+            outer: {
+                sigma_r: fromSI(result.stresses.outer.sigma_r, 'pressure'),
+                sigma_theta: fromSI(result.stresses.outer.sigma_theta, 'pressure'),
+                sigma_vm: fromSI(result.stresses.outer.sigma_vm, 'pressure')
+            }
+        }
+    };
+    
+    // Determine safety status
+    const minSafetyFactor = Math.min(result.safetyFactors.SF_y, result.safetyFactors.SF_u);
+    const targetSF = formData.safetyFactor || 3.0;
+    const isDesignSafe = minSafetyFactor >= targetSF;
+    
     resultsDisplay.innerHTML = `
-        <div class="alert alert-success" role="alert">
-            <h6 class="alert-heading">✅ Validation Successful</h6>
-            <p class="mb-2">All input parameters are valid. Ready for calculation.</p>
+        <div class="alert ${isDesignSafe ? 'alert-success' : 'alert-warning'}" role="alert">
+            <h6 class="alert-heading">${isDesignSafe ? '✅' : '⚠️'} Analysis Complete</h6>
+            <p class="mb-2">
+                ${isDesignSafe 
+                    ? 'Design meets safety requirements.' 
+                    : 'Design may not meet safety requirements - review results carefully.'}
+            </p>
             <small class="text-muted">
-                Calculation engine will be implemented in Task 5 (Lamé equations).
+                Results calculated using Lamé thick-walled cylinder equations.
             </small>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">🛡️ Safety Factors</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h5 class="text-${result.safetyFactors.SF_y >= targetSF ? 'success' : 'warning'}">
+                                        ${result.safetyFactors.SF_y.toFixed(2)}
+                                    </h5>
+                                    <small class="text-muted">Yield SF</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h5 class="text-${result.safetyFactors.SF_u >= targetSF ? 'success' : 'warning'}">
+                                        ${result.safetyFactors.SF_u.toFixed(2)}
+                                    </h5>
+                                    <small class="text-muted">Ultimate SF</small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <small class="text-muted">
+                            Target SF: ${targetSF.toFixed(1)} | 
+                            Minimum: ${minSafetyFactor.toFixed(2)}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">💥 Burst Pressure</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            <h5 class="text-info">
+                                ${displayResult.burstPressure.toFixed(1)} ${units.pressure}
+                            </h5>
+                            <small class="text-muted">
+                                Estimated burst pressure<br>
+                                Current: ${formData.pressure.toFixed(1)} ${units.pressure} 
+                                (${(formData.pressure / displayResult.burstPressure * 100).toFixed(1)}%)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">📊 Detailed Stress Analysis</h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Location</th>
+                                <th>Radial Stress</th>
+                                <th>Hoop Stress</th>
+                                <th>Von Mises</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Inner Surface</strong></td>
+                                <td>${displayResult.stresses.inner.sigma_r.toFixed(1)} ${units.pressure}</td>
+                                <td>${displayResult.stresses.inner.sigma_theta.toFixed(1)} ${units.pressure}</td>
+                                <td>${displayResult.stresses.inner.sigma_vm.toFixed(1)} ${units.pressure}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Outer Surface</strong></td>
+                                <td>${displayResult.stresses.outer.sigma_r.toFixed(1)} ${units.pressure}</td>
+                                <td>${displayResult.stresses.outer.sigma_theta.toFixed(1)} ${units.pressure}</td>
+                                <td>${displayResult.stresses.outer.sigma_vm.toFixed(1)} ${units.pressure}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         
         <div class="card mt-3">
@@ -781,18 +969,43 @@ function handleFormSubmit(event) {
         </div>
     `;
     
-    // Show placeholder charts
+    // Show chart placeholder for now
     const chartsDisplay = document.getElementById('charts-display');
     chartsDisplay.innerHTML = `
         <div class="alert alert-info" role="alert">
-            <h6 class="alert-heading">📈 Analysis Charts</h6>
+            <h6 class="alert-heading">📈 Stress Distribution Chart</h6>
             <p class="mb-0">
-                Stress distribution charts and diagrams will be implemented in future tasks using Chart.js and SVG.
+                Interactive stress distribution charts will be implemented in Task 12 using Chart.js.
+                Stress field data has been calculated and is available for visualization.
             </p>
         </div>
     `;
+}
+
+/**
+ * Display calculation error in the UI
+ */
+function displayCalculationError(error) {
+    const resultsDisplay = document.getElementById('results-display');
     
-    return true;
+    resultsDisplay.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+            <h6 class="alert-heading">❌ Calculation Error</h6>
+            <p class="mb-2">
+                An error occurred during the safety factor calculation:
+            </p>
+            <code>${error.message}</code>
+            <hr>
+            <small class="text-muted">
+                Please check your input values and try again. If the problem persists, 
+                verify that all material properties and geometric constraints are valid.
+            </small>
+        </div>
+    `;
+    
+    // Clear charts display
+    const chartsDisplay = document.getElementById('charts-display');
+    chartsDisplay.innerHTML = '';
 }
 
 /**
