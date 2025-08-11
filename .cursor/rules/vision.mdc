@@ -1,0 +1,38 @@
+---
+alwaysApply: true
+description: Technical vision and architectural principles for the gunsmith barrel calculator
+---
+
+# Technical Vision
+
+## **Core Philosophy**
+Build a **precision engineering tool** disguised as a simple web app - where complex thick-walled cylinder analysis becomes as accessible as a pocket calculator, yet maintains the rigor expected by professional engineers.
+
+## **Architectural Principles**
+
+### **Client-First Architecture**
+- **Zero server dependency** - Everything runs in the browser
+- **Offline-capable** - Works without internet after initial load  
+- **Static deployment** - GitHub Pages compatible
+- **Progressive enhancement** - Graceful degradation across devices
+
+### **Modular Engineering**
+- **Pure ES6 modules** with explicit imports/exports
+- **Domain separation** - Units, calculations, UI, and data as distinct modules
+- **Event-driven coupling** - Components communicate via CustomEvents
+- **Testable units** - Each module independently verifiable
+
+### **Precision-First Design**
+- **SI canonical storage** - All internal calculations in metric base units
+- **Boundary conversions** - Unit conversion only at UI interfaces
+- **Tolerance awareness** - 1e-9 relative precision for engineering accuracy
+- **No precision drift** - Round-trip conversions preserve original values
+
+### **Professional UX Standards**
+- **Mobile-first responsive** - Bootstrap 5.3 with semantic HTML
+- **WCAG 2.1 AA accessibility** - Full keyboard navigation and screen reader support
+- **Real-time validation** - Immediate feedback without form submission
+- **Progressive disclosure** - Advanced features hidden until needed
+
+## **Implementation Strategy**
+Focus on **engineering correctness over feature completeness** - each module must be mathematically sound and thoroughly tested before moving to the next layer of functionality.
