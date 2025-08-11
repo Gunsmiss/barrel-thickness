@@ -1,0 +1,323 @@
+{
+    "materials": [
+        {
+            "id": "4140-annealed",
+            "name": "4140 Steel (Annealed)",
+            "category": "Carbon Steel",
+            "condition": "Annealed",
+            "description": "Low-alloy steel with good machinability and moderate strength",
+            "properties": {
+                "Sy": 415,
+                "Su": 655,
+                "E": 200,
+                "nu": 0.3,
+                "density": 7850
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Good for general purpose barrels, requires heat treatment for higher strength",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "sporting rifles",
+                "general purpose barrels"
+            ]
+        },
+        {
+            "id": "4140-ht",
+            "name": "4140 Steel (Heat Treated)",
+            "category": "Carbon Steel",
+            "condition": "Quenched & Tempered (HRC 28-32)",
+            "description": "Heat treated 4140 with improved strength and toughness",
+            "properties": {
+                "Sy": 655,
+                "Su": 827,
+                "E": 200,
+                "nu": 0.3,
+                "density": 7850
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Most common barrel steel for sporting and tactical applications",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "sporting rifles",
+                "tactical barrels",
+                "hunting rifles"
+            ]
+        },
+        {
+            "id": "4150-ht",
+            "name": "4150 Steel (Heat Treated)",
+            "category": "Carbon Steel",
+            "condition": "Quenched & Tempered (HRC 30-34)",
+            "description": "Higher carbon content than 4140, increased strength",
+            "properties": {
+                "Sy": 724,
+                "Su": 896,
+                "E": 200,
+                "nu": 0.3,
+                "density": 7850
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Preferred for high-stress applications and heavy barrels",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "heavy barrels",
+                "high-pressure cartridges",
+                "match barrels"
+            ]
+        },
+        {
+            "id": "416-ss",
+            "name": "416 Stainless Steel",
+            "category": "Stainless Steel",
+            "condition": "Heat Treated",
+            "description": "Martensitic stainless steel with good machinability",
+            "properties": {
+                "Sy": 276,
+                "Su": 515,
+                "E": 200,
+                "nu": 0.3,
+                "density": 7750
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Good corrosion resistance but lower strength than carbon steels",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "marine environments",
+                "corrosive conditions",
+                "outdoor use"
+            ]
+        },
+        {
+            "id": "17-4ph-h900",
+            "name": "17-4 PH Stainless (H900)",
+            "category": "Stainless Steel",
+            "condition": "Precipitation Hardened (H900)",
+            "description": "High-strength precipitation hardening stainless steel",
+            "properties": {
+                "Sy": 1172,
+                "Su": 1310,
+                "E": 197,
+                "nu": 0.3,
+                "density": 7800
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Excellent strength and corrosion resistance, premium material",
+            "source": "AK Steel Technical Data",
+            "applications": [
+                "high-end barrels",
+                "precision rifles",
+                "aerospace applications"
+            ]
+        },
+        {
+            "id": "17-4ph-h1025",
+            "name": "17-4 PH Stainless (H1025)",
+            "category": "Stainless Steel",
+            "condition": "Precipitation Hardened (H1025)",
+            "description": "Lower strength H1025 condition with improved toughness",
+            "properties": {
+                "Sy": 1000,
+                "Su": 1140,
+                "E": 197,
+                "nu": 0.3,
+                "density": 7800
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Better toughness than H900 condition, good balance of properties",
+            "source": "AK Steel Technical Data",
+            "applications": [
+                "precision barrels",
+                "critical applications",
+                "aerospace"
+            ]
+        },
+        {
+            "id": "304-ss",
+            "name": "304 Stainless Steel",
+            "category": "Stainless Steel",
+            "condition": "Annealed",
+            "description": "Austenitic stainless steel with excellent corrosion resistance",
+            "properties": {
+                "Sy": 205,
+                "Su": 515,
+                "E": 193,
+                "nu": 0.3,
+                "density": 8000
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Non-magnetic, excellent corrosion resistance but lower strength",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "low-pressure applications",
+                "decorative barrels",
+                "marine use"
+            ]
+        },
+        {
+            "id": "316-ss",
+            "name": "316 Stainless Steel",
+            "category": "Stainless Steel",
+            "condition": "Annealed",
+            "description": "Austenitic stainless with superior corrosion resistance",
+            "properties": {
+                "Sy": 207,
+                "Su": 515,
+                "E": 193,
+                "nu": 0.3,
+                "density": 8000
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Superior chloride corrosion resistance, non-magnetic",
+            "source": "ASM Metals Handbook",
+            "applications": [
+                "marine environments",
+                "chemical exposure",
+                "salt water"
+            ]
+        },
+        {
+            "id": "inconel-718",
+            "name": "Inconel 718",
+            "category": "Superalloy",
+            "condition": "Solution Treated & Aged",
+            "description": "Nickel-based superalloy with exceptional high-temperature properties",
+            "properties": {
+                "Sy": 1034,
+                "Su": 1275,
+                "E": 205,
+                "nu": 0.3,
+                "density": 8220
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Excellent high-temperature strength retention, premium material",
+            "source": "Special Metals Corporation Data",
+            "applications": [
+                "high-temperature applications",
+                "rapid-fire barrels",
+                "extreme conditions"
+            ]
+        },
+        {
+            "id": "ti-6al-4v",
+            "name": "Ti-6Al-4V (Grade 5)",
+            "category": "Titanium Alloy",
+            "condition": "Solution Treated & Aged",
+            "description": "Alpha-beta titanium alloy with excellent strength-to-weight ratio",
+            "properties": {
+                "Sy": 827,
+                "Su": 896,
+                "E": 114,
+                "nu": 0.34,
+                "density": 4430
+            },
+            "units": {
+                "Sy": "MPa",
+                "Su": "MPa",
+                "E": "GPa",
+                "nu": "dimensionless",
+                "density": "kg/m³"
+            },
+            "notes": "Lightweight with excellent corrosion resistance, difficult to machine",
+            "source": "ASTM B265 / AMS 4928",
+            "applications": [
+                "lightweight barrels",
+                "aerospace",
+                "specialty applications"
+            ]
+        }
+    ],
+    "categories": [
+        {
+            "id": "carbon-steel",
+            "name": "Carbon Steel",
+            "description": "Iron-carbon alloys with good strength and machinability"
+        },
+        {
+            "id": "stainless-steel",
+            "name": "Stainless Steel",
+            "description": "Corrosion-resistant steel alloys"
+        },
+        {
+            "id": "superalloy",
+            "name": "Superalloy",
+            "description": "High-performance alloys for extreme conditions"
+        },
+        {
+            "id": "titanium-alloy",
+            "name": "Titanium Alloy",
+            "description": "Lightweight, high-strength titanium-based alloys"
+        }
+    ],
+    "metadata": {
+        "version": "1.0.0",
+        "created": "2025-08-11",
+        "description": "Material properties database for barrel safety factor calculations",
+        "units": {
+            "stress": "MPa",
+            "modulus": "GPa",
+            "density": "kg/m³"
+        },
+        "notes": [
+            "All stress values are in SI units (MPa)",
+            "Elastic modulus values are in GPa",
+            "Poisson's ratio is dimensionless",
+            "Density values are in kg/m³",
+            "Properties are typical values - actual properties may vary",
+            "Consult material certificates for critical applications"
+        ]
+    }
+}

@@ -15,6 +15,15 @@ import {
     generateCompoundStressField, 
     validateGeometry 
 } from './calc/trunnion.js';
+import { 
+    getAllMaterials, 
+    getMaterialById, 
+    getMaterialProperties, 
+    getCategories,
+    validateCustomMaterial,
+    createCustomMaterial,
+    searchMaterials
+} from './data/materials.js';
 
 // Application initialization
 document.addEventListener('DOMContentLoaded', function() {
@@ -27,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Initialize the main application
  */
-function initializeApp() {
+async function initializeApp() {
     try {
         // Initialize units system first
         initializeUnitsSystem();
@@ -36,10 +45,10 @@ function initializeApp() {
         clearLoadingStates();
         
         // Initialize form
-        initializeInputForm();
+        await initializeInputForm();
         
         // Initialize mobile offcanvas
-        initializeMobileOffcanvas();
+        await initializeMobileOffcanvas();
         
         // Set up event listeners
         setupEventListeners();
@@ -103,17 +112,17 @@ function clearLoadingStates() {
 /**
  * Initialize the input form
  */
-function initializeInputForm() {
+async function initializeInputForm() {
     const inputForm = document.getElementById('input-form');
     
     // Generate form with current units
-    inputForm.innerHTML = generateFormHTML();
+    inputForm.innerHTML = await generateFormHTML();
 }
 
 /**
  * Generate form HTML based on current units
  */
-function generateFormHTML() {
+async function generateFormHTML() {
     const units = getCurrentUnits();
     const currentSystem = getSystem();
     
@@ -245,16 +254,7 @@ function generateFormHTML() {
                     <select class="form-select" id="material-select" required 
                             aria-describedby="material-help material-error">
                         <option value="">Select material...</option>
-                        <option value="4140-annealed">4140 Steel (Annealed)</option>
-                        <option value="4140-ht">4140 Steel (Heat Treated)</option>
-                        <option value="4150-ht">4150 Steel (Heat Treated)</option>
-                        <option value="416-ss">416 Stainless Steel</option>
-                        <option value="17-4ph-h900">17-4 PH Stainless (H900)</option>
-                        <option value="17-4ph-h1025">17-4 PH Stainless (H1025)</option>
-                        <option value="304-ss">304 Stainless Steel</option>
-                        <option value="316-ss">316 Stainless Steel</option>
-                        <option value="inconel-718">Inconel 718</option>
-                        <option value="ti-6al-4v">Ti-6Al-4V (Grade 5)</option>
+                        ${await generateMaterialOptions()}
                         <option value="custom">Custom Material...</option>
                     </select>
                     <div id="material-help" class="form-text">
@@ -478,13 +478,50 @@ function generateFormHTML() {
 }
 
 /**
+ * Generate material selection options from database
+ */
+async function generateMaterialOptions() {
+    try {
+        const materials = await getAllMaterials();
+        const categories = await getCategories();
+        
+        let html = '';
+        
+        // Group materials by category
+        for (const category of categories) {
+            const categoryMaterials = materials.filter(material => 
+                material.category.toLowerCase().replace(/\s+/g, '-') === category.id ||
+                material.category.toLowerCase() === category.name.toLowerCase()
+            );
+            
+            if (categoryMaterials.length > 0) {
+                html += `<optgroup label="${category.name}">`;
+                for (const material of categoryMaterials) {
+                    html += `<option value="${material.id}">${material.name}</option>`;
+                }
+                html += '</optgroup>';
+            }
+        }
+        
+        return html;
+    } catch (error) {
+        console.error('Error generating material options:', error);
+        // Return fallback options
+        return `
+            <option value="4140-ht">4140 Steel (Heat Treated)</option>
+            <option value="17-4ph-h900">17-4 PH Stainless (H900)</option>
+        `;
+    }
+}
+
+/**
  * Initialize mobile offcanvas functionality
  */
-function initializeMobileOffcanvas() {
+async function initializeMobileOffcanvas() {
     const mobileInputForm = document.getElementById('mobile-input-form');
     if (mobileInputForm) {
         // Copy the main form to mobile offcanvas
-        mobileInputForm.innerHTML = generateFormHTML();
+        mobileInputForm.innerHTML = await generateFormHTML();
         
         // Ensure mobile form has unique IDs and syncs with main form
         const mobileForm = mobileInputForm.querySelector('form');
@@ -553,7 +590,7 @@ function setupMobileFormEventHandlers(mobileForm) {
     const mobileCustomMaterialSection = mobileForm.querySelector('#mobile-custom-material-section');
     
     if (mobileMaterialSelect && mobileCustomMaterialSection) {
-        mobileMaterialSelect.addEventListener('change', function() {
+        mobileMaterialSelect.addEventListener('change', async function() {
             const selectedValue = this.value;
             
             if (selectedValue === 'custom') {
@@ -564,7 +601,7 @@ function setupMobileFormEventHandlers(mobileForm) {
                     // Populate material properties for mobile
                     const mobileYieldStrength = mobileForm.querySelector('#mobile-yield-strength');
                     if (mobileYieldStrength) {
-                        populateMaterialPropertiesForInput(selectedValue, mobileYieldStrength);
+                        await populateMaterialPropertiesForInput(selectedValue, mobileYieldStrength);
                     }
                 }
             }
@@ -597,26 +634,25 @@ function setupMobileFormEventHandlers(mobileForm) {
 /**
  * Populate material properties for a specific input field
  */
-function populateMaterialPropertiesForInput(materialCode, yieldStrengthInput) {
-    const currentSystem = getSystem();
-    
-    // Material database (simplified for Task 4, will be expanded in Task 8)
-    const materials = {
-        '4140-annealed': { yield: currentSystem === 'SI' ? 415 : 60 },
-        '4140-ht': { yield: currentSystem === 'SI' ? 655 : 95 },
-        '4150-ht': { yield: currentSystem === 'SI' ? 724 : 105 },
-        '416-ss': { yield: currentSystem === 'SI' ? 276 : 40 },
-        '17-4ph-h900': { yield: currentSystem === 'SI' ? 1172 : 170 },
-        '17-4ph-h1025': { yield: currentSystem === 'SI' ? 1000 : 145 },
-        '304-ss': { yield: currentSystem === 'SI' ? 205 : 30 },
-        '316-ss': { yield: currentSystem === 'SI' ? 207 : 30 },
-        'inconel-718': { yield: currentSystem === 'SI' ? 1034 : 150 },
-        'ti-6al-4v': { yield: currentSystem === 'SI' ? 827 : 120 }
-    };
-    
-    const material = materials[materialCode];
-    if (material && yieldStrengthInput) {
-        yieldStrengthInput.value = material.yield;
+async function populateMaterialPropertiesForInput(materialCode, yieldStrengthInput) {
+    try {
+        const materialProperties = await getMaterialProperties(materialCode);
+        if (materialProperties && yieldStrengthInput) {
+            yieldStrengthInput.value = Math.round(materialProperties.Sy);
+        }
+    } catch (error) {
+        console.error('Error populating material properties for input:', error);
+        // Fallback to hardcoded values
+        const currentSystem = getSystem();
+        const fallbackMaterials = {
+            '4140-ht': { yield: currentSystem === 'SI' ? 655 : 95 },
+            '17-4ph-h900': { yield: currentSystem === 'SI' ? 1172 : 170 }
+        };
+        
+        const fallback = fallbackMaterials[materialCode];
+        if (fallback && yieldStrengthInput) {
+            yieldStrengthInput.value = fallback.yield;
+        }
     }
 }
 
@@ -665,11 +701,11 @@ function setupUnitToggle() {
 /**
  * Update form units based on current system (triggered by event)
  */
-function updateFormUnitsFromSystem() {
+async function updateFormUnitsFromSystem() {
     // Regenerate the entire form with proper event listeners
     const inputForm = document.getElementById('input-form');
     if (inputForm) {
-        inputForm.innerHTML = generateFormHTML();
+        inputForm.innerHTML = await generateFormHTML();
         
         // Re-attach form event listeners
         const form = document.getElementById('calculation-form');
@@ -679,7 +715,7 @@ function updateFormUnitsFromSystem() {
     }
     
     // Update mobile form too
-    initializeMobileOffcanvas();
+    await initializeMobileOffcanvas();
 }
 
 /**
@@ -1512,7 +1548,7 @@ function setupMaterialSelection() {
     const yieldStrengthInput = document.getElementById('yield-strength');
     
     if (materialSelect && customMaterialSection) {
-        materialSelect.addEventListener('change', function() {
+        materialSelect.addEventListener('change', async function() {
             const selectedValue = this.value;
             
             if (selectedValue === 'custom') {
@@ -1531,7 +1567,7 @@ function setupMaterialSelection() {
                 clearCustomMaterialValidation();
                 
                 // Set material properties based on selection
-                populateMaterialProperties(selectedValue);
+                await populateMaterialProperties(selectedValue);
             }
         });
     }
@@ -1554,30 +1590,57 @@ function clearCustomMaterialValidation() {
 /**
  * Populate material properties for predefined materials
  */
-function populateMaterialProperties(materialCode) {
-    const currentSystem = getSystem();
-    
-    // Material database (simplified for Task 4, will be expanded in Task 8)
-    const materials = {
-        '4140-annealed': { yield: currentSystem === 'SI' ? 415 : 60 },
-        '4140-ht': { yield: currentSystem === 'SI' ? 655 : 95 },
-        '4150-ht': { yield: currentSystem === 'SI' ? 724 : 105 },
-        '416-ss': { yield: currentSystem === 'SI' ? 276 : 40 },
-        '17-4ph-h900': { yield: currentSystem === 'SI' ? 1172 : 170 },
-        '17-4ph-h1025': { yield: currentSystem === 'SI' ? 1000 : 145 },
-        '304-ss': { yield: currentSystem === 'SI' ? 205 : 30 },
-        '316-ss': { yield: currentSystem === 'SI' ? 207 : 30 },
-        'inconel-718': { yield: currentSystem === 'SI' ? 1034 : 150 },
-        'ti-6al-4v': { yield: currentSystem === 'SI' ? 827 : 120 }
-    };
-    
-    const material = materials[materialCode];
-    if (material) {
-        const yieldStrengthInput = document.getElementById('yield-strength');
-        if (yieldStrengthInput) {
-            yieldStrengthInput.value = material.yield;
-            // Trigger validation
-            validateInput(yieldStrengthInput);
+async function populateMaterialProperties(materialCode) {
+    try {
+        const materialProperties = await getMaterialProperties(materialCode);
+        if (materialProperties) {
+            const yieldStrengthInput = document.getElementById('yield-strength');
+            const elasticModulusInput = document.getElementById('elastic-modulus');
+            
+            if (yieldStrengthInput) {
+                yieldStrengthInput.value = Math.round(materialProperties.Sy);
+                // Trigger validation
+                validateInput(yieldStrengthInput);
+            }
+            
+            if (elasticModulusInput && materialProperties.E) {
+                // Convert GPa to appropriate units
+                const currentSystem = getSystem();
+                const modulusValue = currentSystem === 'SI' ? 
+                    materialProperties.E : 
+                    Math.round(materialProperties.E / 1000); // Convert ksi back to appropriate range
+                elasticModulusInput.value = modulusValue;
+                validateInput(elasticModulusInput);
+            }
+            
+            // Show material details in help text if available
+            const material = await getMaterialById(materialCode);
+            if (material) {
+                const materialHelp = document.getElementById('material-help');
+                if (materialHelp) {
+                    materialHelp.innerHTML = `
+                        <strong>${material.name}</strong> - ${material.condition}<br>
+                        <small class="text-muted">${material.notes || material.description || ''}</small>
+                    `;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error populating material properties:', error);
+        // Fallback to hardcoded values
+        const currentSystem = getSystem();
+        const fallbackMaterials = {
+            '4140-ht': { yield: currentSystem === 'SI' ? 655 : 95 },
+            '17-4ph-h900': { yield: currentSystem === 'SI' ? 1172 : 170 }
+        };
+        
+        const fallback = fallbackMaterials[materialCode];
+        if (fallback) {
+            const yieldStrengthInput = document.getElementById('yield-strength');
+            if (yieldStrengthInput) {
+                yieldStrengthInput.value = fallback.yield;
+                validateInput(yieldStrengthInput);
+            }
         }
     }
 }
@@ -1730,6 +1793,31 @@ function validateSpecificField(inputId, value) {
             if (value <= 0) {
                 return { isValid: false, message: 'Yield strength must be greater than 0.' };
             }
+            // Additional validation for custom materials
+            const materialSelect = document.getElementById('material-select');
+            if (materialSelect && materialSelect.value === 'custom') {
+                const currentSystem = getSystem();
+                const siValue = currentSystem === 'SI' ? value : toSI(value, 'pressure');
+                if (siValue < 50 || siValue > 2000) {
+                    return { isValid: false, message: 'Yield strength should be between 50-2000 MPa (7-290 ksi).' };
+                }
+            }
+            break;
+            
+        case 'elastic-modulus':
+            if (value <= 0) {
+                return { isValid: false, message: 'Elastic modulus must be greater than 0.' };
+            }
+            // Additional validation for custom materials
+            const materialSelectForModulus = document.getElementById('material-select');
+            if (materialSelectForModulus && materialSelectForModulus.value === 'custom') {
+                const currentSystem = getSystem();
+                // Convert to GPa for validation
+                const gpaValue = currentSystem === 'SI' ? value : value / 145.0377; // Convert ksi to GPa
+                if (gpaValue < 50 || gpaValue > 500) {
+                    return { isValid: false, message: 'Elastic modulus should be between 50-500 GPa (7-72 Msi).' };
+                }
+            }
             break;
             
         case 'safety-factor':
@@ -1795,6 +1883,11 @@ function checkCrossFieldValidation() {
     
     // Check tolerance-specific validation
     if (!checkToleranceValidation()) {
+        isValid = false;
+    }
+    
+    // Check custom material validation
+    if (!checkCustomMaterialValidation()) {
         isValid = false;
     }
     
@@ -1938,6 +2031,59 @@ function checkToleranceValidation() {
         toleranceInput.classList.add('is-valid');
         if (toleranceError) {
             toleranceError.className = 'invalid-feedback';
+        }
+    }
+    
+    return isValid;
+}
+
+/**
+ * Check custom material validation logic
+ */
+function checkCustomMaterialValidation() {
+    const materialSelect = document.getElementById('material-select');
+    
+    // Only validate if custom material is selected
+    if (!materialSelect || materialSelect.value !== 'custom') {
+        return true;
+    }
+    
+    const yieldStrengthInput = document.getElementById('yield-strength');
+    const elasticModulusInput = document.getElementById('elastic-modulus');
+    const yieldStrengthError = document.getElementById('yield-strength-error');
+    
+    let isValid = true;
+    
+    // Check that yield strength and ultimate strength relationship is logical
+    if (yieldStrengthInput && yieldStrengthInput.value) {
+        const yieldStrength = parseFloat(yieldStrengthInput.value);
+        
+        if (!isNaN(yieldStrength)) {
+            // Estimate ultimate strength as 1.2-1.8 times yield for validation
+            const estimatedUltimate = yieldStrength * 1.5; // Conservative estimate
+            
+            // For very high yield strengths, warn about the estimated ultimate
+            const currentSystem = getSystem();
+            const siYield = currentSystem === 'SI' ? yieldStrength : toSI(yieldStrength, 'pressure');
+            
+            if (siYield > 1500) {
+                yieldStrengthInput.classList.add('is-valid');
+                if (yieldStrengthError) {
+                    yieldStrengthError.textContent = '⚠️ Very high strength material. Verify ultimate strength is appropriate.';
+                    yieldStrengthError.className = 'form-text text-warning';
+                }
+            } else if (siYield < 200) {
+                yieldStrengthInput.classList.add('is-valid');
+                if (yieldStrengthError) {
+                    yieldStrengthError.textContent = '⚠️ Low strength material. Consider higher strength alloys for barrel applications.';
+                    yieldStrengthError.className = 'form-text text-warning';
+                }
+            } else {
+                if (yieldStrengthError && yieldStrengthError.className === 'form-text text-warning') {
+                    yieldStrengthError.textContent = '';
+                    yieldStrengthError.className = 'invalid-feedback';
+                }
+            }
         }
     }
     
