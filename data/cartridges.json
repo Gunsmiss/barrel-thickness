@@ -1,0 +1,241 @@
+{
+    "cartridges": [
+        {
+            "id": "223-rem",
+            "name": ".223 Remington",
+            "category": "Rifle",
+            "description": "Popular sporting/target cartridge, similar to 5.56 NATO but lower pressure",
+            "chamber_diameter": 5.69,
+            "bore_diameter": 5.56,
+            "max_pressure": 379.21,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 55000,
+            "notes": "SAAMI specification, civilian variant",
+            "applications": [
+                "target shooting",
+                "varmint hunting",
+                "sporting rifles"
+            ]
+        },
+        {
+            "id": "556-nato",
+            "name": "5.56×45mm NATO",
+            "category": "Military Rifle",
+            "description": "NATO military cartridge with higher pressure than .223 Rem",
+            "chamber_diameter": 5.69,
+            "bore_diameter": 5.56,
+            "max_pressure": 430.00,
+            "standard": "NATO/CIP",
+            "standard_pressure_psi": 62366,
+            "notes": "NATO specification, higher pressure than .223 Rem",
+            "applications": [
+                "military rifles",
+                "tactical applications",
+                "law enforcement"
+            ]
+        },
+        {
+            "id": "9mm-luger",
+            "name": "9×19mm Parabellum (9mm Luger)",
+            "category": "Pistol",
+            "description": "Most common pistol cartridge worldwide",
+            "chamber_diameter": 9.93,
+            "bore_diameter": 9.02,
+            "max_pressure": 241.32,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 35000,
+            "notes": "Also known as 9mm Parabellum, most popular pistol cartridge",
+            "applications": [
+                "pistols",
+                "submachine guns",
+                "law enforcement"
+            ]
+        },
+        {
+            "id": "45-acp",
+            "name": ".45 ACP",
+            "category": "Pistol",
+            "description": "Large bore pistol cartridge, relatively low pressure",
+            "chamber_diameter": 12.09,
+            "bore_diameter": 11.43,
+            "max_pressure": 152.00,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 21000,
+            "notes": "Low pressure, large bore cartridge with good stopping power",
+            "applications": [
+                "pistols",
+                "target shooting",
+                "self-defense"
+            ]
+        },
+        {
+            "id": "308-win",
+            "name": ".308 Winchester",
+            "category": "Rifle",
+            "description": "Popular hunting and target cartridge, civilian version of 7.62 NATO",
+            "chamber_diameter": 7.85,
+            "bore_diameter": 7.62,
+            "max_pressure": 413.69,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 60000,
+            "notes": "Very popular hunting cartridge, excellent accuracy potential",
+            "applications": [
+                "hunting",
+                "target shooting",
+                "sniper rifles"
+            ]
+        },
+        {
+            "id": "762-nato",
+            "name": "7.62×51mm NATO",
+            "category": "Military Rifle",
+            "description": "NATO military cartridge, similar to .308 Win but different pressure spec",
+            "chamber_diameter": 7.85,
+            "bore_diameter": 7.62,
+            "max_pressure": 415.00,
+            "standard": "NATO",
+            "standard_pressure_psi": 60191,
+            "notes": "NATO military specification, similar to .308 Winchester",
+            "applications": [
+                "military rifles",
+                "sniper systems",
+                "machine guns"
+            ]
+        },
+        {
+            "id": "30-06",
+            "name": ".30-06 Springfield",
+            "category": "Rifle",
+            "description": "Classic American hunting cartridge, excellent versatility",
+            "chamber_diameter": 7.85,
+            "bore_diameter": 7.62,
+            "max_pressure": 413.69,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 60000,
+            "notes": "Long-serving military and hunting cartridge, very versatile",
+            "applications": [
+                "hunting",
+                "target shooting",
+                "military (historical)"
+            ]
+        },
+        {
+            "id": "300-win-mag",
+            "name": ".300 Winchester Magnum",
+            "category": "Magnum Rifle",
+            "description": "High-performance magnum cartridge for long-range hunting",
+            "chamber_diameter": 7.85,
+            "bore_diameter": 7.62,
+            "max_pressure": 448.16,
+            "standard": "SAAMI",
+            "standard_pressure_psi": 65000,
+            "notes": "Popular magnum cartridge, excellent long-range performance",
+            "applications": [
+                "long-range hunting",
+                "precision shooting",
+                "military sniping"
+            ]
+        },
+        {
+            "id": "338-lapua",
+            "name": ".338 Lapua Magnum",
+            "category": "Magnum Rifle",
+            "description": "Extreme long-range precision cartridge",
+            "chamber_diameter": 8.89,
+            "bore_diameter": 8.58,
+            "max_pressure": 470.00,
+            "standard": "CIP",
+            "standard_pressure_psi": 68161,
+            "notes": "Designed for extreme long-range precision, very high pressure",
+            "applications": [
+                "extreme long-range shooting",
+                "military sniping",
+                "competition"
+            ]
+        },
+        {
+            "id": "50-bmg",
+            "name": ".50 BMG (12.7×99mm NATO)",
+            "category": "Heavy Rifle",
+            "description": "Heavy machine gun and anti-materiel rifle cartridge",
+            "chamber_diameter": 13.08,
+            "bore_diameter": 12.7,
+            "max_pressure": 379.21,
+            "standard": "NATO/SAAMI",
+            "standard_pressure_psi": 55000,
+            "notes": "Large bore, high energy cartridge for heavy applications",
+            "applications": [
+                "anti-materiel rifles",
+                "heavy machine guns",
+                "extreme long-range"
+            ]
+        }
+    ],
+    "categories": [
+        {
+            "id": "pistol",
+            "name": "Pistol",
+            "description": "Handgun cartridges"
+        },
+        {
+            "id": "rifle",
+            "name": "Rifle",
+            "description": "Standard rifle cartridges"
+        },
+        {
+            "id": "military-rifle",
+            "name": "Military Rifle",
+            "description": "Military specification rifle cartridges"
+        },
+        {
+            "id": "magnum-rifle",
+            "name": "Magnum Rifle",
+            "description": "High-power magnum rifle cartridges"
+        },
+        {
+            "id": "heavy-rifle",
+            "name": "Heavy Rifle",
+            "description": "Heavy caliber rifle cartridges"
+        }
+    ],
+    "standards": [
+        {
+            "id": "saami",
+            "name": "SAAMI",
+            "description": "Sporting Arms and Ammunition Manufacturers' Institute",
+            "region": "North America"
+        },
+        {
+            "id": "cip",
+            "name": "CIP",
+            "description": "Commission Internationale Permanente pour l'Epreuve des Armes à Feu Portatives",
+            "region": "Europe"
+        },
+        {
+            "id": "nato",
+            "name": "NATO",
+            "description": "North Atlantic Treaty Organization military specifications",
+            "region": "NATO Countries"
+        }
+    ],
+    "metadata": {
+        "version": "1.0.0",
+        "created": "2025-08-11",
+        "description": "Cartridge specifications database for barrel safety factor calculations",
+        "units": {
+            "pressure": "MPa",
+            "diameter": "mm",
+            "length": "mm"
+        },
+        "notes": [
+            "All pressure values are in SI units (MPa)",
+            "All diameter values are in millimeters (mm)",
+            "Chamber diameter is the internal diameter at the chamber/breech end",
+            "Bore diameter is the internal diameter at the muzzle end",
+            "Pressure values include typical safety margins above proof loads",
+            "Standard pressure values are provided in both MPa and PSI for reference",
+            "Consult current standards for critical applications",
+            "Military cartridges may have different specifications than civilian variants"
+        ]
+    }
+}

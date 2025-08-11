@@ -24,6 +24,15 @@ import {
     createCustomMaterial,
     searchMaterials
 } from './data/materials.js';
+import {
+    getAllCartridges,
+    getCartridgeById,
+    getCartridgeSpecs,
+    searchCartridges,
+    getPopularCartridges,
+    getCategories as getCartridgeCategories,
+    validateCartridgeSelection
+} from './data/cartridges.js';
 
 // Application initialization
 document.addEventListener('DOMContentLoaded', function() {
@@ -97,6 +106,9 @@ function handleUnitSystemChange(event) {
     
     // Convert any existing values in the form
     convertExistingFormValues(event.detail.previousSystem, newSystem);
+    
+    // Update cartridge UI if a cartridge is selected
+    updateCartridgeUIForUnitChange();
 }
 
 /**
@@ -117,6 +129,9 @@ async function initializeInputForm() {
     
     // Generate form with current units
     inputForm.innerHTML = await generateFormHTML();
+    
+    // Initialize cartridge functionality
+    await initializeCartridgeUI();
 }
 
 /**
@@ -155,6 +170,53 @@ async function generateFormHTML() {
     
     return `
         <form id="calculation-form" novalidate>
+            <!-- Quick Cartridge Selection -->
+            <fieldset class="border p-3 mb-4 rounded">
+                <legend class="fs-6 fw-bold">Quick Cartridge Selection</legend>
+                
+                <!-- Cartridge Selection -->
+                <div class="mb-3">
+                    <label for="cartridge-select" class="form-label">
+                        Select Common Cartridge (Optional)
+                    </label>
+                    <div class="input-group">
+                        <div class="form-floating flex-grow-1">
+                            <select class="form-select" id="cartridge-select" aria-describedby="cartridge-help">
+                                <option value="">-- Select a cartridge --</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                            <label for="cartridge-select">Cartridge</label>
+                        </div>
+                        <button class="btn btn-outline-secondary" type="button" id="clear-cartridge" 
+                                title="Clear cartridge selection" aria-label="Clear cartridge selection">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div id="cartridge-help" class="form-text">
+                        Select a common cartridge to auto-fill chamber diameter and pressure
+                    </div>
+                    <div id="cartridge-info" class="alert alert-info mt-2 d-none" role="status">
+                        <!-- Cartridge info will be displayed here -->
+                    </div>
+                </div>
+
+                <!-- Cartridge Search -->
+                <div class="mb-3">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="cartridge-search" 
+                               placeholder="Search cartridges..."
+                               aria-describedby="cartridge-search-help">
+                        <label for="cartridge-search">Search Cartridges</label>
+                    </div>
+                    <div id="cartridge-search-help" class="form-text">
+                        Search by name, category, or application (e.g., "hunting", "target", "9mm")
+                    </div>
+                    <div id="cartridge-search-results" class="mt-2">
+                        <!-- Search results will be displayed here -->
+                    </div>
+                </div>
+            </fieldset>
+
             <!-- Basic Barrel Geometry -->
             <fieldset class="border p-3 mb-4 rounded">
                 <legend class="fs-6 fw-bold">Basic Barrel Geometry</legend>
@@ -478,6 +540,340 @@ async function generateFormHTML() {
 }
 
 /**
+ * Initialize cartridge UI functionality
+ */
+async function initializeCartridgeUI() {
+    try {
+        // Populate cartridge dropdown with popular cartridges
+        await populateCartridgeDropdown();
+        
+        // Set up event listeners for cartridge functionality
+        setupCartridgeEventListeners();
+        
+        console.log('Cartridge UI initialized successfully');
+    } catch (error) {
+        console.error('Error initializing cartridge UI:', error);
+        // Disable cartridge functionality on error
+        disableCartridgeUI();
+    }
+}
+
+/**
+ * Populate the cartridge dropdown with popular cartridges
+ */
+async function populateCartridgeDropdown() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    if (!cartridgeSelect) return;
+    
+    try {
+        const popularCartridges = await getPopularCartridges();
+        const categories = await getCartridgeCategories();
+        
+        // Clear existing options except the default
+        cartridgeSelect.innerHTML = '<option value="">-- Select a cartridge --</option>';
+        
+        // Group cartridges by category
+        const categorizedCartridges = {};
+        popularCartridges.forEach(cartridge => {
+            if (!categorizedCartridges[cartridge.category]) {
+                categorizedCartridges[cartridge.category] = [];
+            }
+            categorizedCartridges[cartridge.category].push(cartridge);
+        });
+        
+        // Add cartridges to dropdown grouped by category
+        for (const category of categories) {
+            const cartridgesInCategory = categorizedCartridges[category.name];
+            if (cartridgesInCategory && cartridgesInCategory.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.name;
+                
+                cartridgesInCategory.forEach(cartridge => {
+                    const option = document.createElement('option');
+                    option.value = cartridge.id;
+                    option.textContent = cartridge.name;
+                    option.dataset.cartridge = JSON.stringify(cartridge);
+                    optgroup.appendChild(option);
+                });
+                
+                cartridgeSelect.appendChild(optgroup);
+            }
+        }
+        
+        console.log(`Populated cartridge dropdown with ${popularCartridges.length} cartridges`);
+    } catch (error) {
+        console.error('Error populating cartridge dropdown:', error);
+    }
+}
+
+/**
+ * Set up event listeners for cartridge functionality
+ */
+function setupCartridgeEventListeners() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    const cartridgeSearch = document.getElementById('cartridge-search');
+    const clearCartridgeBtn = document.getElementById('clear-cartridge');
+    
+    if (cartridgeSelect) {
+        cartridgeSelect.addEventListener('change', handleCartridgeSelection);
+    }
+    
+    if (cartridgeSearch) {
+        // Debounced search
+        let searchTimeout;
+        cartridgeSearch.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                handleCartridgeSearch(e.target.value);
+            }, 300);
+        });
+    }
+    
+    if (clearCartridgeBtn) {
+        clearCartridgeBtn.addEventListener('click', clearCartridgeSelection);
+    }
+}
+
+/**
+ * Handle cartridge selection from dropdown
+ */
+async function handleCartridgeSelection(event) {
+    const selectedValue = event.target.value;
+    const cartridgeInfo = document.getElementById('cartridge-info');
+    
+    if (!selectedValue) {
+        // Clear selection
+        cartridgeInfo.classList.add('d-none');
+        return;
+    }
+    
+    try {
+        const cartridge = await getCartridgeById(selectedValue);
+        if (!cartridge) {
+            console.error('Cartridge not found:', selectedValue);
+            return;
+        }
+        
+        // Get specs in current units
+        const specs = await getCartridgeSpecs(selectedValue);
+        
+        // Display cartridge information
+        displayCartridgeInfo(cartridge, specs);
+        
+        // Auto-fill form fields
+        autofillFromCartridge(specs);
+        
+        // Clear search field
+        const searchField = document.getElementById('cartridge-search');
+        if (searchField) {
+            searchField.value = '';
+        }
+        
+        // Clear search results
+        clearSearchResults();
+        
+        console.log('Cartridge selected:', cartridge.name);
+    } catch (error) {
+        console.error('Error handling cartridge selection:', error);
+    }
+}
+
+/**
+ * Display cartridge information
+ */
+function displayCartridgeInfo(cartridge, specs) {
+    const cartridgeInfo = document.getElementById('cartridge-info');
+    if (!cartridgeInfo) return;
+    
+    const units = getCurrentUnits();
+    
+    cartridgeInfo.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <strong>${cartridge.name}</strong> (${cartridge.standard})
+                <div class="small text-muted">
+                    Chamber: ${specs.chamber_diameter.toFixed(3)} ${specs.units.diameter} | 
+                    Pressure: ${specs.max_pressure.toFixed(0)} ${specs.units.pressure}
+                </div>
+                ${cartridge.description ? `<div class="small">${cartridge.description}</div>` : ''}
+            </div>
+            <button type="button" class="btn-close" aria-label="Close" onclick="this.parentElement.parentElement.classList.add('d-none')"></button>
+        </div>
+    `;
+    
+    cartridgeInfo.classList.remove('d-none');
+}
+
+/**
+ * Auto-fill form fields from cartridge specifications
+ */
+function autofillFromCartridge(specs) {
+    const chamberDiameterField = document.getElementById('chamber-diameter');
+    const boreDiameterField = document.getElementById('bore-diameter');
+    const pressureField = document.getElementById('pressure');
+    
+    if (chamberDiameterField) {
+        chamberDiameterField.value = specs.chamber_diameter.toFixed(3);
+        // Trigger validation
+        chamberDiameterField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    if (boreDiameterField) {
+        boreDiameterField.value = specs.bore_diameter.toFixed(3);
+        boreDiameterField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    if (pressureField) {
+        pressureField.value = specs.max_pressure.toFixed(0);
+        pressureField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
+/**
+ * Handle cartridge search
+ */
+async function handleCartridgeSearch(searchTerm) {
+    const resultsContainer = document.getElementById('cartridge-search-results');
+    if (!resultsContainer) return;
+    
+    if (!searchTerm || searchTerm.trim().length < 2) {
+        clearSearchResults();
+        return;
+    }
+    
+    try {
+        const results = await searchCartridges(searchTerm);
+        displaySearchResults(results.slice(0, 5)); // Limit to 5 results
+    } catch (error) {
+        console.error('Error searching cartridges:', error);
+        clearSearchResults();
+    }
+}
+
+/**
+ * Display search results
+ */
+function displaySearchResults(cartridges) {
+    const resultsContainer = document.getElementById('cartridge-search-results');
+    if (!resultsContainer) return;
+    
+    if (cartridges.length === 0) {
+        resultsContainer.innerHTML = '<div class="text-muted small">No cartridges found</div>';
+        return;
+    }
+    
+    const resultsList = cartridges.map(cartridge => {
+        return `
+            <button type="button" class="btn btn-outline-secondary btn-sm me-1 mb-1 cartridge-search-result"
+                    data-cartridge-id="${cartridge.id}"
+                    title="${cartridge.description || cartridge.name}">
+                ${cartridge.name}
+            </button>
+        `;
+    }).join('');
+    
+    resultsContainer.innerHTML = `
+        <div class="small text-muted mb-1">Search results:</div>
+        ${resultsList}
+    `;
+    
+    // Add event listeners to result buttons
+    resultsContainer.querySelectorAll('.cartridge-search-result').forEach(button => {
+        button.addEventListener('click', async function() {
+            const cartridgeId = this.dataset.cartridgeId;
+            
+            // Set the dropdown value
+            const cartridgeSelect = document.getElementById('cartridge-select');
+            if (cartridgeSelect) {
+                cartridgeSelect.value = cartridgeId;
+                // Trigger change event
+                cartridgeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    });
+}
+
+/**
+ * Clear search results
+ */
+function clearSearchResults() {
+    const resultsContainer = document.getElementById('cartridge-search-results');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '';
+    }
+}
+
+/**
+ * Clear cartridge selection
+ */
+function clearCartridgeSelection() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    const cartridgeInfo = document.getElementById('cartridge-info');
+    const cartridgeSearch = document.getElementById('cartridge-search');
+    
+    if (cartridgeSelect) {
+        cartridgeSelect.value = '';
+    }
+    
+    if (cartridgeInfo) {
+        cartridgeInfo.classList.add('d-none');
+    }
+    
+    if (cartridgeSearch) {
+        cartridgeSearch.value = '';
+    }
+    
+    clearSearchResults();
+}
+
+/**
+ * Disable cartridge UI on error
+ */
+function disableCartridgeUI() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    const cartridgeSearch = document.getElementById('cartridge-search');
+    const clearCartridgeBtn = document.getElementById('clear-cartridge');
+    
+    if (cartridgeSelect) {
+        cartridgeSelect.disabled = true;
+        cartridgeSelect.innerHTML = '<option>Cartridge database unavailable</option>';
+    }
+    
+    if (cartridgeSearch) {
+        cartridgeSearch.disabled = true;
+        cartridgeSearch.placeholder = 'Search unavailable';
+    }
+    
+    if (clearCartridgeBtn) {
+        clearCartridgeBtn.disabled = true;
+    }
+}
+
+/**
+ * Update cartridge UI when unit system changes
+ */
+async function updateCartridgeUIForUnitChange() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    const cartridgeInfo = document.getElementById('cartridge-info');
+    
+    if (!cartridgeSelect || !cartridgeSelect.value) {
+        return;
+    }
+    
+    try {
+        // Re-display the currently selected cartridge with new units
+        const cartridge = await getCartridgeById(cartridgeSelect.value);
+        const specs = await getCartridgeSpecs(cartridgeSelect.value);
+        
+        if (cartridge && specs) {
+            displayCartridgeInfo(cartridge, specs);
+        }
+    } catch (error) {
+        console.error('Error updating cartridge UI for unit change:', error);
+    }
+}
+
+/**
  * Generate material selection options from database
  */
 async function generateMaterialOptions() {
@@ -548,7 +944,7 @@ async function initializeMobileOffcanvas() {
                         }
                         // Trigger validation on main form
                         validateInput(mainInput);
-                        checkCrossFieldValidation();
+                        (async () => await checkCrossFieldValidation())();
                     }
                 });
                 
@@ -777,7 +1173,7 @@ async function handleFormSubmit(event) {
     });
     
     // Check cross-field validation
-    if (!checkCrossFieldValidation()) {
+    if (!(await checkCrossFieldValidation())) {
         isFormValid = false;
     }
     
@@ -1424,6 +1820,9 @@ function collectFormData() {
     
     if (!form) return formData;
     
+    // Cartridge selection
+    formData.selectedCartridge = document.getElementById('cartridge-select').value || null;
+    
     // Basic geometry
     formData.chamberDiameter = parseFloat(document.getElementById('chamber-diameter').value) || null;
     formData.boreDiameter = parseFloat(document.getElementById('bore-diameter').value) || formData.chamberDiameter;
@@ -1465,6 +1864,12 @@ function generateFormDataSummary(data) {
     html += '<div class="col-md-6">';
     html += '<h6>Geometry</h6>';
     html += '<ul class="list-unstyled">';
+    
+    // Add cartridge information if selected
+    if (data.selectedCartridge) {
+        html += `<li><strong>Selected Cartridge:</strong> ${data.selectedCartridge}</li>`;
+    }
+    
     html += `<li><strong>Chamber Diameter:</strong> ${data.chamberDiameter?.toFixed(3) || 'N/A'} ${units.diameter}</li>`;
     if (data.boreDiameter !== data.chamberDiameter) {
         html += `<li><strong>Bore Diameter:</strong> ${data.boreDiameter?.toFixed(3) || 'N/A'} ${units.diameter}</li>`;
@@ -1664,9 +2069,9 @@ function setupInputValidation() {
             }
             
             // Set new timer
-            const timer = setTimeout(() => {
+            const timer = setTimeout(async () => {
                 validateInput(this);
-                checkCrossFieldValidation();
+                await checkCrossFieldValidation();
                 debounceTimers.delete(inputId);
             }, debounceDelay);
             
@@ -1674,16 +2079,16 @@ function setupInputValidation() {
         });
         
         // Validation on blur (immediate)
-        input.addEventListener('blur', function() {
+        input.addEventListener('blur', async function() {
             validateInput(this);
-            checkCrossFieldValidation();
+            await checkCrossFieldValidation();
         });
         
         // For select elements, also listen to change events
         if (input.tagName === 'SELECT') {
-            input.addEventListener('change', function() {
+            input.addEventListener('change', async function() {
                 validateInput(this);
-                checkCrossFieldValidation();
+                await checkCrossFieldValidation();
             });
         }
     });
@@ -1848,7 +2253,7 @@ function validateSpecificField(inputId, value) {
 /**
  * Check cross-field validation (e.g., OD > ID)
  */
-function checkCrossFieldValidation() {
+async function checkCrossFieldValidation() {
     let isValid = true;
     
     // Check diameter relationships
@@ -1888,6 +2293,11 @@ function checkCrossFieldValidation() {
     
     // Check custom material validation
     if (!checkCustomMaterialValidation()) {
+        isValid = false;
+    }
+    
+    // Check cartridge-specific validation
+    if (!(await checkCartridgeValidation())) {
         isValid = false;
     }
     
@@ -2150,6 +2560,72 @@ function setupResetFunctionality() {
                 `;
             }
         });
+    }
+}
+
+/**
+ * Check cartridge-specific validation logic
+ */
+async function checkCartridgeValidation() {
+    const cartridgeSelect = document.getElementById('cartridge-select');
+    const chamberDiameterInput = document.getElementById('chamber-diameter');
+    const outerDiameterInput = document.getElementById('outer-diameter');
+    const pressureInput = document.getElementById('pressure');
+    
+    if (!cartridgeSelect || !cartridgeSelect.value) {
+        return true; // No validation needed if no cartridge is selected
+    }
+    
+    const chamberDiameter = parseFloat(chamberDiameterInput.value);
+    const outerDiameter = parseFloat(outerDiameterInput.value);
+    const pressure = parseFloat(pressureInput.value);
+    
+    if (isNaN(chamberDiameter) || isNaN(outerDiameter)) {
+        return true; // Can't validate without valid dimensions
+    }
+    
+    try {
+        // Validate cartridge selection against barrel parameters
+        const validation = await validateCartridgeSelection(
+            cartridgeSelect.value, 
+            chamberDiameter, 
+            outerDiameter
+        );
+        
+        // Display warnings in the cartridge info area
+        const cartridgeInfo = document.getElementById('cartridge-info');
+        if (cartridgeInfo && !cartridgeInfo.classList.contains('d-none')) {
+            if (validation.warnings.length > 0 || validation.recommendations.length > 0) {
+                let warningHtml = cartridgeInfo.innerHTML;
+                
+                if (validation.warnings.length > 0) {
+                    warningHtml += '<div class="mt-2 small text-warning">';
+                    warningHtml += '<strong>⚠️ Warnings:</strong><ul class="mb-0">';
+                    validation.warnings.forEach(warning => {
+                        warningHtml += `<li>${warning}</li>`;
+                    });
+                    warningHtml += '</ul></div>';
+                }
+                
+                if (validation.recommendations.length > 0) {
+                    warningHtml += '<div class="mt-1 small text-info">';
+                    warningHtml += '<strong>💡 Recommendations:</strong><ul class="mb-0">';
+                    validation.recommendations.forEach(recommendation => {
+                        warningHtml += `<li>${recommendation}</li>`;
+                    });
+                    warningHtml += '</ul></div>';
+                }
+                
+                cartridgeInfo.innerHTML = warningHtml;
+            }
+        }
+        
+        // Return true even with warnings (they're informational)
+        return validation.isValid;
+        
+    } catch (error) {
+        console.error('Error validating cartridge selection:', error);
+        return true; // Don't block form submission on validation error
     }
 }
 
