@@ -34,5 +34,35 @@ Build a **precision engineering tool** disguised as a simple web app - where com
 - **Real-time validation** - Immediate feedback without form submission
 - **Progressive disclosure** - Advanced features hidden until needed
 
+## **Validation & User Experience Principles**
+
+### **Intelligent Validation**
+- **Debounced real-time validation** - 250ms delay prevents excessive validation calls
+- **Cross-field validation** - Logical constraints (OD > ID) enforced automatically
+- **Non-jargon error messages** - Clear, actionable feedback for engineers
+- **Field-specific validation** - Context-aware validation rules per input type
+- **Required field indicators** - Visual cues with accessibility support
+
+### **Progressive Disclosure Implementation**
+- **Bootstrap accordion structure** - Collapsible advanced options (trunnion, tolerances)
+- **Conditional field visibility** - Custom material properties shown only when needed
+- **Smart defaults** - Pre-populated values for common materials and configurations
+- **Material database integration** - Predefined properties for common barrel steels
+- **Graceful degradation** - Essential fields always visible, advanced options hidden by default
+
+### **Responsive Design Strategy**
+- **Mobile offcanvas synchronization** - Bidirectional form state sync between desktop and mobile
+- **Form-floating controls** - Modern Bootstrap 5.3 input styling with proper labels
+- **Fieldset organization** - Logical grouping of related inputs with semantic HTML
+- **Touch-friendly targets** - Adequate spacing and sizing for mobile interaction
+
 ## **Implementation Strategy**
 Focus on **engineering correctness over feature completeness** - each module must be mathematically sound and thoroughly tested before moving to the next layer of functionality.
+
+### **Validation Strategy Proven**
+Through Task 4 implementation, we've validated that:
+- **Form validation complexity** can be managed through modular functions
+- **Unit conversion reliability** is maintained through consistent SI canonical storage
+- **Progressive disclosure** enhances UX without sacrificing professional capability
+- **Accessibility standards** are achievable with proper ARIA implementation
+- **Mobile responsiveness** requires careful state synchronization but is fully achievable
