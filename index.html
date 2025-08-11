@@ -28,12 +28,26 @@
     <div class="container-fluid">
         <header class="row mb-4">
             <div class="col-12">
-                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top" role="navigation" aria-label="Main navigation">
                     <div class="container-fluid">
-                        <a class="navbar-brand" href="#">
+                        <a class="navbar-brand" href="#" aria-label="Home">
                             <strong>Gunsmith Barrel SF Calculator</strong>
                         </a>
-                        <span class="navbar-text text-light">
+                        <button class="navbar-toggler d-sm-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#inputsOffcanvas" aria-controls="inputsOffcanvas" aria-expanded="false" aria-label="Toggle input panel">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="navbar-nav ms-auto">
+                            <div class="nav-item dropdown">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" id="unitToggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Select unit system">
+                                    <span id="currentUnit">Imperial</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="unitToggle">
+                                    <li><button class="dropdown-item" type="button" data-unit="imperial">Imperial (PSI, in)</button></li>
+                                    <li><button class="dropdown-item" type="button" data-unit="metric">Metric (MPa, mm)</button></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <span class="navbar-text text-light d-none d-md-inline ms-3">
                             Professional thick-walled cylinder stress analysis
                         </span>
                     </div>
@@ -41,12 +55,12 @@
             </div>
         </header>
         
-        <main class="row">
+        <main class="row" role="main" aria-label="Main content">
             <!-- Input Panel -->
-            <div class="col-lg-4 col-md-12 mb-4">
-                <div class="card h-100">
+            <div class="col-xxl-4 col-lg-12 col-md-12 mb-4 d-sm-block d-none main-input-panel">
+                <section class="card h-100" role="region" aria-labelledby="input-heading">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">📊 Input Parameters</h5>
+                        <h2 class="card-title mb-0 h5" id="input-heading">📊 Input Parameters</h2>
                     </div>
                     <div class="card-body">
                         <div id="input-form">
@@ -57,14 +71,14 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
             
             <!-- Results Panel -->
-            <div class="col-lg-4 col-md-12 mb-4">
-                <div class="card h-100">
+            <div class="col-xxl-4 col-lg-6 col-md-12 mb-4">
+                <section class="card h-100" role="region" aria-labelledby="results-heading">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">📋 Results</h5>
+                        <h2 class="card-title mb-0 h5" id="results-heading">📋 Results</h2>
                     </div>
                     <div class="card-body">
                         <div id="results-display">
@@ -74,14 +88,14 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
             
             <!-- Charts Panel -->
-            <div class="col-lg-4 col-md-12 mb-4">
-                <div class="card h-100">
+            <div class="col-xxl-4 col-lg-6 col-md-12 mb-4">
+                <section class="card h-100" role="region" aria-labelledby="charts-heading">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">📈 Analysis Charts</h5>
+                        <h2 class="card-title mb-0 h5" id="charts-heading">📈 Analysis Charts</h2>
                     </div>
                     <div class="card-body">
                         <div id="charts-display">
@@ -91,9 +105,26 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </main>
+
+        <!-- Mobile Offcanvas for Input Panel -->
+        <div class="offcanvas offcanvas-start d-sm-none" tabindex="-1" id="inputsOffcanvas" aria-labelledby="inputsOffcanvasLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="inputsOffcanvasLabel">📊 Input Parameters</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close input panel"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div id="mobile-input-form">
+                    <!-- Input form will be populated by JavaScript for mobile -->
+                    <div class="text-center text-muted">
+                        <div class="spinner-border" role="status" aria-hidden="true"></div>
+                        <p class="mt-2">Loading input form...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <footer class="row mt-4">
             <div class="col-12">

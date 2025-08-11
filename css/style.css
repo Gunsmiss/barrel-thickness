@@ -1,18 +1,57 @@
 /* Gunsmith Barrel Safety Factor Calculator - Custom Styles */
 
 :root {
+  /* Base theme colors */
   --primary-color: #212529;
   --secondary-color: #6c757d;
   --success-color: #198754;
   --warning-color: #ffc107;
   --danger-color: #dc3545;
   --info-color: #0dcaf0;
+  --light-color: #f8f9fa;
+  --dark-color: #343a40;
+  
+  /* Background and text colors */
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  
+  /* Component colors */
+  --card-bg: #ffffff;
+  --card-border: #dee2e6;
+  --card-shadow: rgba(0, 0, 0, 0.075);
+  --card-shadow-hover: rgba(0, 0, 0, 0.15);
+  
+  /* Form colors */
+  --input-bg: #ffffff;
+  --input-border: #ced4da;
+  --input-focus-border: var(--primary-color);
+  --input-focus-shadow: rgba(33, 37, 41, 0.25);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #000000;
+    --secondary-color: #333333;
+    --text-color: #000000;
+    --text-muted: #333333;
+    --bg-color: #ffffff;
+    --card-bg: #ffffff;
+    --card-border: #000000;
+    --card-shadow: rgba(0, 0, 0, 0.3);
+    --card-shadow-hover: rgba(0, 0, 0, 0.5);
+    --input-border: #000000;
+    --input-focus-border: #000000;
+    --input-focus-shadow: rgba(0, 0, 0, 0.5);
+  }
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
-  background-color: #f8f9fa;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 .navbar-brand {
@@ -20,13 +59,14 @@ body {
 }
 
 .card {
-  border: none;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid var(--card-border);
+  background-color: var(--card-bg);
+  box-shadow: 0 0.125rem 0.25rem var(--card-shadow);
   transition: box-shadow 0.15s ease-in-out;
 }
 
 .card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0.5rem 1rem var(--card-shadow-hover);
 }
 
 .card-header {
@@ -46,9 +86,15 @@ body {
   color: var(--primary-color);
 }
 
+.form-control {
+  background-color: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-color);
+}
+
 .form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.25rem rgba(33, 37, 41, 0.25);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 0.25rem var(--input-focus-shadow);
 }
 
 /* Results styling */
@@ -69,6 +115,25 @@ body {
   height: 300px;
 }
 
+/* Mobile-specific styles for offcanvas */
+@media (max-width: 575.98px) {
+  .main-input-panel {
+    display: none !important;
+  }
+  
+  .navbar-toggler {
+    display: block !important;
+  }
+  
+  .chart-container {
+    height: 200px;
+  }
+  
+  .navbar-text {
+    display: none !important;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 991.98px) {
   .chart-container {
@@ -80,6 +145,15 @@ body {
   .chart-container {
     height: 200px;
   }
+}
+
+/* Offcanvas improvements */
+.offcanvas {
+  width: 300px;
+}
+
+.offcanvas-body {
+  padding: 1rem;
 }
 
 /* Accessibility improvements */

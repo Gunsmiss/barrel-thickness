@@ -22,6 +22,9 @@ function initializeApp() {
         // Initialize form
         initializeInputForm();
         
+        // Initialize mobile offcanvas
+        initializeMobileOffcanvas();
+        
         // Set up event listeners
         setupEventListeners();
         
@@ -102,6 +105,17 @@ function initializeInputForm() {
 }
 
 /**
+ * Initialize mobile offcanvas functionality
+ */
+function initializeMobileOffcanvas() {
+    const mobileInputForm = document.getElementById('mobile-input-form');
+    if (mobileInputForm) {
+        // Copy the main form to mobile offcanvas
+        mobileInputForm.innerHTML = '<p class="text-muted">Form will sync with main panel</p>';
+    }
+}
+
+/**
  * Set up event listeners
  */
 function setupEventListeners() {
@@ -109,6 +123,68 @@ function setupEventListeners() {
     if (form) {
         form.addEventListener('submit', handleFormSubmit);
     }
+    
+    // Unit toggle functionality
+    setupUnitToggle();
+}
+
+/**
+ * Set up unit toggle functionality
+ */
+function setupUnitToggle() {
+    const unitDropdownItems = document.querySelectorAll('[data-unit]');
+    const currentUnitSpan = document.getElementById('currentUnit');
+    
+    unitDropdownItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const selectedUnit = this.getAttribute('data-unit');
+            const unitText = selectedUnit === 'imperial' ? 'Imperial' : 'Metric';
+            
+            if (currentUnitSpan) {
+                currentUnitSpan.textContent = unitText;
+            }
+            
+            // Update form labels and placeholders based on unit system
+            updateFormUnits(selectedUnit);
+            
+            console.log(`Unit system changed to: ${unitText}`);
+        });
+    });
+}
+
+/**
+ * Update form units based on selected system
+ */
+function updateFormUnits(unitSystem) {
+    const form = document.getElementById('calculation-form');
+    if (!form) return;
+    
+    if (unitSystem === 'metric') {
+        // Update to metric units
+        updateFormField('inner-diameter', 'Inner Diameter (mm)', '7.82', 'Bore diameter of the barrel');
+        updateFormField('outer-diameter', 'Outer Diameter (mm)', '19.05', 'Outside diameter of the barrel');
+        updateFormField('pressure', 'Internal Pressure (MPa)', '380', 'Maximum expected chamber pressure');
+        updateFormField('yield-strength', 'Material Yield Strength (MPa)', '827', 'Material yield strength (steel: ~827 MPa typical)');
+    } else {
+        // Update to imperial units
+        updateFormField('inner-diameter', 'Inner Diameter (inches)', '0.308', 'Bore diameter of the barrel');
+        updateFormField('outer-diameter', 'Outer Diameter (inches)', '0.750', 'Outside diameter of the barrel');
+        updateFormField('pressure', 'Internal Pressure (psi)', '55000', 'Maximum expected chamber pressure');
+        updateFormField('yield-strength', 'Material Yield Strength (psi)', '120000', 'Material yield strength (steel: ~120,000 psi typical)');
+    }
+}
+
+/**
+ * Update individual form field labels and placeholders
+ */
+function updateFormField(fieldId, label, placeholder, helpText) {
+    const field = document.getElementById(fieldId);
+    const labelElement = document.querySelector(`label[for="${fieldId}"]`);
+    const helpElement = document.getElementById(`${fieldId}-help`);
+    
+    if (labelElement) labelElement.textContent = label;
+    if (field) field.placeholder = placeholder;
+    if (helpElement) helpElement.textContent = helpText;
 }
 
 /**
