@@ -5,6 +5,16 @@
 
 import { setSystem, getSystem, convert, format, getCurrentUnits, fromSI, toSI } from './units.js';
 import { analyzeCircle, generateStressField } from './calc/core.js';
+import { 
+    performWorstCaseAnalysis, 
+    getAvailableToleranceClasses,
+    validateToleranceParams
+} from './calc/tolerance.js';
+import { 
+    analyzeCompoundCylinder, 
+    generateCompoundStressField, 
+    validateGeometry 
+} from './calc/trunnion.js';
 
 // Application initialization
 document.addEventListener('DOMContentLoaded', function() {
@@ -715,7 +725,7 @@ function convertExistingFormValues(previousSystem, newSystem) {
 /**
  * Handle form submission
  */
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
     
     const form = event.target;
@@ -758,12 +768,23 @@ function handleFormSubmit(event) {
     
     console.log('Form submitted - performing Lamé equation calculations');
     
+    // Show loading indicator while calculating
+    const resultsDisplay = document.getElementById('results-display');
+    resultsDisplay.innerHTML = `
+        <div class="alert alert-info" role="alert">
+            <h6 class="alert-heading">🔄 Calculating...</h6>
+            <p class="mb-0">
+                Performing barrel analysis and tolerance calculations...
+            </p>
+        </div>
+    `;
+    
     // Collect form data for processing
     const formData = collectFormData();
     
     try {
-        // Perform barrel analysis calculation
-        const analysisResult = performBarrelAnalysis(formData);
+        // Perform barrel analysis calculation (now async for tolerance analysis)
+        const analysisResult = await performBarrelAnalysis(formData);
         
         // Display results
         displayCalculationResults(analysisResult, formData);
@@ -777,9 +798,66 @@ function handleFormSubmit(event) {
 }
 
 /**
+ * Prepare parameters for compound cylinder analysis with trunnion
+ */
+async function prepareCompoundCylinderParams(formData, basicParams) {
+    // Convert trunnion dimensions to SI units
+    const trunnionOD = toSI(formData.trunnionOD, 'diameter');
+    const trunnionLength = toSI(formData.trunnionLength, 'length');
+    
+    // Calculate trunnion inner radius (should equal barrel outer radius minus interference)
+    // For now, assume a typical interference fit of 0.025-0.1mm depending on size
+    const barrelOuterRadius = basicParams.ro;
+    const interference = Math.max(0.025, barrelOuterRadius * 0.001); // 0.1% of radius, min 0.025mm
+    const trunnionInnerRadius = barrelOuterRadius - interference;
+    const trunnionOuterRadius = trunnionOD / 2;
+    
+    // Material properties - assume same material for barrel and trunnion for now
+    // In a real application, these could be different materials
+    const E_barrel = 200000; // MPa, typical steel elastic modulus
+    const E_trunnion = 200000; // MPa
+    const nu_barrel = 0.3; // Typical Poisson's ratio for steel
+    const nu_trunnion = 0.3;
+    
+    // Set up compound cylinder parameters
+    const compoundParams = {
+        barrel: {
+            ri: basicParams.ri,
+            ro: barrelOuterRadius,
+            E: E_barrel,
+            nu: nu_barrel
+        },
+        trunnion: {
+            ri: trunnionInnerRadius,
+            ro: trunnionOuterRadius,
+            E: E_trunnion,
+            nu: nu_trunnion
+        },
+        interference: interference,
+        operatingPressure: basicParams.p_i,
+        externalPressure: basicParams.p_o,
+        material: {
+            Sy: basicParams.Sy,
+            Su: basicParams.Su
+        },
+        sigma_axial: basicParams.sigma_axial
+    };
+    
+    // Validate geometry before proceeding
+    try {
+        validateGeometry(compoundParams.barrel, compoundParams.trunnion, interference);
+    } catch (error) {
+        console.warn('Trunnion geometry validation failed:', error.message);
+        throw new Error(`Invalid trunnion configuration: ${error.message}`);
+    }
+    
+    return compoundParams;
+}
+
+/**
  * Perform barrel analysis using Lamé equations
  */
-function performBarrelAnalysis(formData) {
+async function performBarrelAnalysis(formData) {
     // Convert form data to SI units for calculation
     const ri = toSI(formData.boreDiameter / 2, 'diameter'); // Convert to radius in mm
     const ro = toSI(formData.outerDiameter / 2, 'diameter'); // Convert to radius in mm
@@ -806,20 +884,86 @@ function performBarrelAnalysis(formData) {
         sigma_axial: 0 // Assume thin-walled axial stress approximation for now
     };
     
-    // Perform the analysis
-    const result = analyzeCircle(calcParams);
+    // Perform the nominal analysis - either single cylinder or compound cylinder
+    let result;
+    if (formData.enableTrunnion && formData.trunnionOD && formData.trunnionLength) {
+        // Compound cylinder analysis with trunnion
+        const trunnionParams = await prepareCompoundCylinderParams(formData, calcParams);
+        result = analyzeCompoundCylinder(trunnionParams);
+        result.analysisType = 'compound';
+    } else {
+        // Standard single cylinder analysis
+        result = analyzeCircle(calcParams);
+        result.analysisType = 'single';
+    }
+    
+    // Perform tolerance analysis if not precision class
+    let toleranceAnalysis = null;
+    if (formData.toleranceClass && formData.toleranceClass !== 'precision') {
+        try {
+            // Map tolerance classes to ISO 286 standard fits
+            const toleranceMapping = {
+                'precision': 'H7/h6',
+                'standard': 'H8/h7', 
+                'commercial': 'H9/h8',
+                'rough': 'H11/h9'
+            };
+            
+            const toleranceClass = toleranceMapping[formData.toleranceClass] || 'H8/h7';
+            
+            const toleranceParams = {
+                nominalInnerRadius: ri,
+                nominalOuterRadius: ro,
+                nominalPressure: p_i,
+                toleranceClass: toleranceClass,
+                toleranceStandard: 'iso286',
+                pressureToleranceLevel: formData.toleranceClass,
+                yieldStrength: Sy,
+                ultimateStrength: Su,
+                externalPressure: 0,
+                axialStress: 0
+            };
+            
+            // Validate tolerance parameters
+            const validation = validateToleranceParams(toleranceParams);
+            if (validation.isValid) {
+                toleranceAnalysis = await performWorstCaseAnalysis(toleranceParams);
+            } else {
+                console.warn('Tolerance analysis skipped due to invalid parameters:', validation.errors);
+            }
+        } catch (error) {
+            console.warn('Tolerance analysis failed:', error.message);
+            // Continue with nominal analysis only
+        }
+    }
     
     // Generate stress field for visualization
-    const stressField = generateStressField(
-        ri,
-        ro,
-        result.lameCoefficients.A,
-        result.lameCoefficients.B,
-        50 // 50 points for smooth curves
-    );
+    let stressField;
+    if (result.analysisType === 'compound') {
+        // Generate compound stress field for trunnion analysis
+        stressField = generateCompoundStressField(
+            result.combinedStresses,
+            result.geometry,
+            50 // 50 points per region for smooth curves
+        );
+    } else {
+        // Generate standard stress field for single cylinder
+        stressField = generateStressField(
+            ri,
+            ro,
+            result.lameCoefficients.A,
+            result.lameCoefficients.B,
+            50 // 50 points for smooth curves
+        );
+    }
     
     // Add stress field to result
     result.stressField = stressField;
+    
+    // Add tolerance analysis if available
+    if (toleranceAnalysis) {
+        result.toleranceAnalysis = toleranceAnalysis;
+    }
     
     // Add original form data for reference
     result.inputData = formData;
@@ -834,26 +978,68 @@ function displayCalculationResults(result, formData) {
     const resultsDisplay = document.getElementById('results-display');
     const units = formData.units;
     
-    // Convert results back to display units
-    const displayResult = {
-        safetyFactors: result.safetyFactors,
-        burstPressure: fromSI(result.burstPressure, 'pressure'),
-        stresses: {
-            inner: {
-                sigma_r: fromSI(result.stresses.inner.sigma_r, 'pressure'),
-                sigma_theta: fromSI(result.stresses.inner.sigma_theta, 'pressure'),
-                sigma_vm: fromSI(result.stresses.inner.sigma_vm, 'pressure')
+    // Convert results back to display units - handle both single and compound cylinder results
+    let displayResult;
+    let safetyFactors;
+    let burstPressure;
+    
+    if (result.analysisType === 'compound') {
+        // For compound cylinder, extract the worst safety factors from critical locations
+        const criticalAnalysis = result.analysis;
+        const allSafetyFactors = Object.values(criticalAnalysis).map(loc => loc.safetyFactors);
+        
+        // Find minimum safety factors across all critical locations
+        safetyFactors = {
+            SF_y: Math.min(...allSafetyFactors.map(sf => sf.SF_y)),
+            SF_u: Math.min(...allSafetyFactors.map(sf => sf.SF_u))
+        };
+        
+        // For compound cylinders, burst pressure estimation would need special handling
+        // For now, use a simplified approach based on barrel inner radius
+        burstPressure = result.loadings.operatingPressure * 2; // Simplified estimate
+        
+        displayResult = {
+            safetyFactors: safetyFactors,
+            burstPressure: fromSI(burstPressure, 'pressure'),
+            stresses: {
+                inner: {
+                    sigma_r: fromSI(criticalAnalysis.barrelInner.stresses.sigma_r, 'pressure'),
+                    sigma_theta: fromSI(criticalAnalysis.barrelInner.stresses.sigma_theta, 'pressure'),
+                    sigma_vm: fromSI(criticalAnalysis.barrelInner.sigma_vm, 'pressure')
+                },
+                outer: {
+                    sigma_r: fromSI(criticalAnalysis.trunnionOuter.stresses.sigma_r, 'pressure'),
+                    sigma_theta: fromSI(criticalAnalysis.trunnionOuter.stresses.sigma_theta, 'pressure'),
+                    sigma_vm: fromSI(criticalAnalysis.trunnionOuter.sigma_vm, 'pressure')
+                }
             },
-            outer: {
-                sigma_r: fromSI(result.stresses.outer.sigma_r, 'pressure'),
-                sigma_theta: fromSI(result.stresses.outer.sigma_theta, 'pressure'),
-                sigma_vm: fromSI(result.stresses.outer.sigma_vm, 'pressure')
-            }
-        }
-    };
+            contactPressure: fromSI(result.contactPressure, 'pressure'),
+            analysisType: 'compound'
+        };
+    } else {
+        // Standard single cylinder result
+        displayResult = {
+            safetyFactors: result.safetyFactors,
+            burstPressure: fromSI(result.burstPressure, 'pressure'),
+            stresses: {
+                inner: {
+                    sigma_r: fromSI(result.stresses.inner.sigma_r, 'pressure'),
+                    sigma_theta: fromSI(result.stresses.inner.sigma_theta, 'pressure'),
+                    sigma_vm: fromSI(result.stresses.inner.sigma_vm, 'pressure')
+                },
+                outer: {
+                    sigma_r: fromSI(result.stresses.outer.sigma_r, 'pressure'),
+                    sigma_theta: fromSI(result.stresses.outer.sigma_theta, 'pressure'),
+                    sigma_vm: fromSI(result.stresses.outer.sigma_vm, 'pressure')
+                }
+            },
+            analysisType: 'single'
+        };
+        safetyFactors = result.safetyFactors;
+    }
     
     // Determine safety status
-    const minSafetyFactor = Math.min(result.safetyFactors.SF_y, result.safetyFactors.SF_u);
+    const minSafetyFactor = Math.min(safetyFactors.SF_y, safetyFactors.SF_u);
     const targetSF = formData.safetyFactor || 3.0;
     const isDesignSafe = minSafetyFactor >= targetSF;
     
@@ -880,16 +1066,16 @@ function displayCalculationResults(result, formData) {
                         <div class="row">
                             <div class="col-6">
                                 <div class="text-center">
-                                    <h5 class="text-${result.safetyFactors.SF_y >= targetSF ? 'success' : 'warning'}">
-                                        ${result.safetyFactors.SF_y.toFixed(2)}
+                                    <h5 class="text-${safetyFactors.SF_y >= targetSF ? 'success' : 'warning'}">
+                                        ${safetyFactors.SF_y.toFixed(2)}
                                     </h5>
                                     <small class="text-muted">Yield SF</small>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="text-center">
-                                    <h5 class="text-${result.safetyFactors.SF_u >= targetSF ? 'success' : 'warning'}">
-                                        ${result.safetyFactors.SF_u.toFixed(2)}
+                                    <h5 class="text-${safetyFactors.SF_u >= targetSF ? 'success' : 'warning'}">
+                                        ${safetyFactors.SF_u.toFixed(2)}
                                     </h5>
                                     <small class="text-muted">Ultimate SF</small>
                                 </div>
@@ -959,6 +1145,49 @@ function displayCalculationResults(result, formData) {
             </div>
         </div>
         
+        ${displayResult.analysisType === 'compound' ? `
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">🔧 Trunnion Analysis</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-info">
+                                ${displayResult.contactPressure.toFixed(1)} ${units.pressure}
+                            </h6>
+                            <small class="text-muted">Contact Pressure</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-secondary">
+                                ${(formData.trunnionOD - formData.outerDiameter).toFixed(2)} ${units.diameter}
+                            </h6>
+                            <small class="text-muted">Trunnion Thickness</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h6 class="text-secondary">
+                                ${formData.trunnionLength?.toFixed(1) || 'N/A'} ${units.length}
+                            </h6>
+                            <small class="text-muted">Trunnion Length</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <small class="text-muted">
+                    <strong>Note:</strong> Compound cylinder analysis includes stress superposition from interference fit preload and operating pressure.
+                    Results show minimum safety factors across all critical locations.
+                </small>
+            </div>
+        </div>
+        ` : ''}
+        
+        ${result.toleranceAnalysis ? generateToleranceAnalysisSection(result.toleranceAnalysis, units) : ''}
+        
         <div class="card mt-3">
             <div class="card-header">
                 <h6 class="card-title mb-0">📋 Input Summary</h6>
@@ -978,6 +1207,148 @@ function displayCalculationResults(result, formData) {
                 Interactive stress distribution charts will be implemented in Task 12 using Chart.js.
                 Stress field data has been calculated and is available for visualization.
             </p>
+        </div>
+    `;
+}
+
+/**
+ * Generate tolerance analysis section HTML
+ */
+function generateToleranceAnalysisSection(toleranceAnalysis, units) {
+    // Convert tolerance analysis results to display units
+    const worstCaseSF = toleranceAnalysis.summary.worstCaseSafetyFactor;
+    const nominalSF = toleranceAnalysis.summary.nominalSafetyFactor;
+    const safetyMargin = toleranceAnalysis.summary.safetyMargin;
+    const wallThicknessReduction = toleranceAnalysis.summary.wallThicknessReduction;
+    const pressureIncrease = toleranceAnalysis.summary.pressureIncrease;
+    
+    // Convert dimensions to display units
+    const nominalWallThickness = fromSI(toleranceAnalysis.dimensions.nominal.wallThickness, 'diameter');
+    const worstCaseWallThickness = fromSI(toleranceAnalysis.dimensions.worstCase.wallThickness, 'diameter');
+    const bestCaseWallThickness = fromSI(toleranceAnalysis.dimensions.bestCase.wallThickness, 'diameter');
+    
+    // Convert pressures to display units
+    const nominalPressure = fromSI(toleranceAnalysis.pressureVariations.nominal, 'pressure');
+    const worstCasePressure = fromSI(toleranceAnalysis.pressureVariations.worstCase, 'pressure');
+    const bestCasePressure = fromSI(toleranceAnalysis.pressureVariations.bestCase, 'pressure');
+    
+    // Determine safety status for worst-case
+    const isWorstCaseSafe = worstCaseSF >= 3.0; // Using standard 3.0 threshold
+    
+    return `
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">📏 Worst-Case Tolerance Analysis</h6>
+                <small class="text-muted">Manufacturing tolerances: ${toleranceAnalysis.tolerances.description}</small>
+            </div>
+            <div class="card-body">
+                <div class="alert ${isWorstCaseSafe ? 'alert-info' : 'alert-warning'}" role="alert">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="alert-heading">📊 Safety Factor Impact</h6>
+                            <p class="mb-1">
+                                <strong>Nominal SF:</strong> ${nominalSF.toFixed(2)} <br>
+                                <strong>Worst-Case SF:</strong> <span class="text-${isWorstCaseSafe ? 'success' : 'danger'}">${worstCaseSF.toFixed(2)}</span>
+                            </p>
+                            <small class="text-muted">
+                                Safety margin: ${(safetyMargin * 100).toFixed(1)}% of nominal
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="alert-heading">📐 Dimensional Impact</h6>
+                            <p class="mb-1">
+                                <strong>Wall thickness reduction:</strong> ${wallThicknessReduction.toFixed(1)}%<br>
+                                <strong>Pressure increase:</strong> ${pressureIncrease.toFixed(1)}%
+                            </p>
+                            <small class="text-muted">
+                                Combined worst-case effects
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="card-title mb-0 small">🎯 Nominal Case</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <table class="table table-sm mb-0">
+                                    <tr>
+                                        <td>Wall Thickness:</td>
+                                        <td><strong>${nominalWallThickness.toFixed(3)} ${units.diameter}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pressure:</td>
+                                        <td><strong>${nominalPressure.toFixed(0)} ${units.pressure}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Safety Factor:</td>
+                                        <td><strong class="text-success">${nominalSF.toFixed(2)}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="card-title mb-0 small">⚠️ Worst Case</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <table class="table table-sm mb-0">
+                                    <tr>
+                                        <td>Wall Thickness:</td>
+                                        <td><strong class="text-warning">${worstCaseWallThickness.toFixed(3)} ${units.diameter}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pressure:</td>
+                                        <td><strong class="text-warning">${worstCasePressure.toFixed(0)} ${units.pressure}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Safety Factor:</td>
+                                        <td><strong class="text-${isWorstCaseSafe ? 'success' : 'danger'}">${worstCaseSF.toFixed(2)}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="card-title mb-0 small">✅ Best Case</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <table class="table table-sm mb-0">
+                                    <tr>
+                                        <td>Wall Thickness:</td>
+                                        <td><strong class="text-success">${bestCaseWallThickness.toFixed(3)} ${units.diameter}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Pressure:</td>
+                                        <td><strong class="text-success">${bestCasePressure.toFixed(0)} ${units.pressure}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Safety Factor:</td>
+                                        <td><strong class="text-success">${toleranceAnalysis.analyses.bestCase.safetyFactors.SF_y.toFixed(2)}</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <strong>Note:</strong> Worst-case analysis considers maximum bore diameter, minimum outer diameter, 
+                        and maximum pressure within tolerance bands. This represents the most conservative scenario 
+                        for manufacturing variations.
+                    </small>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -1244,6 +1615,14 @@ function setupInputValidation() {
             validateInput(this);
             checkCrossFieldValidation();
         });
+        
+        // For select elements, also listen to change events
+        if (input.tagName === 'SELECT') {
+            input.addEventListener('change', function() {
+                validateInput(this);
+                checkCrossFieldValidation();
+            });
+        }
     });
 }
 
@@ -1361,6 +1740,18 @@ function validateSpecificField(inputId, value) {
                 return { isValid: true, message: 'Warning: Safety factors below 2.0 are not recommended for firearms.' };
             }
             break;
+            
+        case 'trunnion-od':
+            if (value <= 0) {
+                return { isValid: false, message: 'Trunnion outer diameter must be greater than 0.' };
+            }
+            break;
+            
+        case 'trunnion-length':
+            if (value <= 0) {
+                return { isValid: false, message: 'Trunnion length must be greater than 0.' };
+            }
+            break;
     }
     
     return { isValid: true };
@@ -1370,6 +1761,9 @@ function validateSpecificField(inputId, value) {
  * Check cross-field validation (e.g., OD > ID)
  */
 function checkCrossFieldValidation() {
+    let isValid = true;
+    
+    // Check diameter relationships
     const chamberDiameter = parseFloat(document.getElementById('chamber-diameter').value);
     const boreDiameter = parseFloat(document.getElementById('bore-diameter').value);
     const outerDiameter = parseFloat(document.getElementById('outer-diameter').value);
@@ -1387,14 +1781,167 @@ function checkCrossFieldValidation() {
             if (outerDiameterError) {
                 outerDiameterError.textContent = 'Outer diameter must be greater than inner diameter.';
             }
-            return false;
+            isValid = false;
         } else {
             // Re-validate the outer diameter field normally
             validateInput(outerDiameterInput);
         }
     }
     
-    return true;
+    // Check trunnion-specific validation if enabled
+    if (!checkTrunnionValidation()) {
+        isValid = false;
+    }
+    
+    // Check tolerance-specific validation
+    if (!checkToleranceValidation()) {
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+/**
+ * Check trunnion-specific validation logic
+ */
+function checkTrunnionValidation() {
+    const enableTrunnion = document.getElementById('enable-trunnion').checked;
+    
+    if (!enableTrunnion) {
+        return true; // No validation needed if trunnion is disabled
+    }
+    
+    const outerDiameter = parseFloat(document.getElementById('outer-diameter').value);
+    const trunnionOD = parseFloat(document.getElementById('trunnion-od').value);
+    const trunnionLength = parseFloat(document.getElementById('trunnion-length').value);
+    
+    const trunnionODInput = document.getElementById('trunnion-od');
+    const trunnionODError = document.getElementById('trunnion-od-error');
+    const trunnionLengthInput = document.getElementById('trunnion-length');
+    const trunnionLengthError = document.getElementById('trunnion-length-error');
+    
+    let isValid = true;
+    
+    // Check that trunnion OD is greater than barrel OD
+    if (!isNaN(outerDiameter) && !isNaN(trunnionOD)) {
+        if (trunnionOD <= outerDiameter) {
+            trunnionODInput.classList.remove('is-valid');
+            trunnionODInput.classList.add('is-invalid');
+            if (trunnionODError) {
+                trunnionODError.textContent = 'Trunnion outer diameter must be greater than barrel outer diameter.';
+            }
+            isValid = false;
+        } else {
+            // Check for reasonable sizing
+            const trunnionThickness = (trunnionOD - outerDiameter) / 2;
+            const barrelThickness = outerDiameter / 2; // Approximate for warning
+            
+            if (trunnionThickness < barrelThickness * 0.2) {
+                trunnionODInput.classList.add('is-valid');
+                if (trunnionODError) {
+                    trunnionODError.textContent = '⚠️ Warning: Thin trunnion wall may not provide significant reinforcement.';
+                    trunnionODError.className = 'form-text text-warning';
+                }
+            } else {
+                trunnionODInput.classList.add('is-valid');
+                if (trunnionODError) {
+                    trunnionODError.textContent = '';
+                    trunnionODError.className = 'invalid-feedback';
+                }
+            }
+        }
+    }
+    
+    // Check trunnion length reasonableness
+    if (!isNaN(outerDiameter) && !isNaN(trunnionLength)) {
+        if (trunnionLength < outerDiameter * 0.5) {
+            trunnionLengthInput.classList.add('is-valid');
+            if (trunnionLengthError) {
+                trunnionLengthError.textContent = '⚠️ Warning: Short trunnion length may limit effectiveness.';
+                trunnionLengthError.className = 'form-text text-warning';
+            }
+        } else {
+            trunnionLengthInput.classList.add('is-valid');
+            if (trunnionLengthError) {
+                trunnionLengthError.textContent = '';
+                trunnionLengthError.className = 'invalid-feedback';
+            }
+        }
+    }
+    
+    return isValid;
+}
+
+/**
+ * Check tolerance-specific validation logic
+ */
+function checkToleranceValidation() {
+    const toleranceClass = document.getElementById('tolerance-class').value;
+    const chamberDiameter = parseFloat(document.getElementById('chamber-diameter').value);
+    const boreDiameter = parseFloat(document.getElementById('bore-diameter').value);
+    const outerDiameter = parseFloat(document.getElementById('outer-diameter').value);
+    const pressure = parseFloat(document.getElementById('pressure').value);
+    
+    const toleranceInput = document.getElementById('tolerance-class');
+    const toleranceError = document.getElementById('tolerance-error');
+    
+    // Clear previous tolerance validation state
+    toleranceInput.classList.remove('is-invalid', 'is-valid');
+    if (toleranceError) {
+        toleranceError.textContent = '';
+    }
+    
+    let isValid = true;
+    let warningMessage = '';
+    
+    // Get inner diameter for calculations
+    const innerDiameter = boreDiameter || chamberDiameter;
+    
+    if (!isNaN(innerDiameter) && !isNaN(outerDiameter) && !isNaN(pressure)) {
+        const wallThickness = (outerDiameter - innerDiameter) / 2;
+        const wallThicknessRatio = wallThickness / innerDiameter;
+        
+        // Warn about tolerance class selection for thin-walled designs
+        if (wallThicknessRatio < 0.1 && (toleranceClass === 'commercial' || toleranceClass === 'rough')) {
+            warningMessage = 'Commercial or rough tolerances may significantly reduce safety margins for thin-walled designs.';
+        }
+        
+        // Warn about high-pressure designs with loose tolerances
+        const pressureMPa = pressure * (getSystem() === 'metric' ? 1 : 6.895); // Convert to MPa if needed
+        if (pressureMPa > 300 && (toleranceClass === 'commercial' || toleranceClass === 'rough')) {
+            warningMessage = 'Loose tolerances are not recommended for high-pressure applications above 300 MPa.';
+        }
+        
+        // Very thin walls with rough tolerances should be flagged as invalid
+        if (wallThicknessRatio < 0.05 && toleranceClass === 'rough') {
+            isValid = false;
+            warningMessage = 'Rough tolerances are not suitable for very thin-walled designs. Use precision or standard tolerances.';
+        }
+    }
+    
+    // Apply validation state
+    if (warningMessage) {
+        if (isValid) {
+            toleranceInput.classList.add('is-valid');
+            if (toleranceError) {
+                toleranceError.textContent = `⚠️ ${warningMessage}`;
+                toleranceError.className = 'form-text text-warning';
+            }
+        } else {
+            toleranceInput.classList.add('is-invalid');
+            if (toleranceError) {
+                toleranceError.textContent = warningMessage;
+                toleranceError.className = 'invalid-feedback';
+            }
+        }
+    } else if (toleranceClass) {
+        toleranceInput.classList.add('is-valid');
+        if (toleranceError) {
+            toleranceError.className = 'invalid-feedback';
+        }
+    }
+    
+    return isValid;
 }
 
 /**
